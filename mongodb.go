@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,7 +15,8 @@ import (
 
 // NewMongoDB creates a new MongoDB instance.
 func NewMongoDB() (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb+srv://root:revxe3-roxfUb-wepcih@cluster1.epptnkq.mongodb.net/"))
+	mongodbURI := os.Getenv("MONGODB_URI")
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongodbURI))
 	if err != nil {
 		panic(err)
 	}
