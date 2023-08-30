@@ -24,6 +24,58 @@ func NewMongoDB() (*mongo.Client, error) {
 	return client, nil
 }
 
+// InsertDocument fügt ein Dokument in die Sammlung ein.
+func InsertDocument(collectionName string, document interface{}) error {
+	client, err := NewMongoDB()
+	if err != nil {
+		return err
+	}
+	collection := client.Database("borrowbox").Collection(collectionName)
+	_, err = collection.InsertOne(context.Background(), document)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateDocument aktualisiert ein Dokument in der Sammlung.
+func UpdateDocument(collectionName string, documentID string, update interface{}) error {
+	client, err := NewMongoDB()
+	if err != nil {
+		return err
+	}
+	collection := client.Database("borrowbox").Collection(collectionName)
+	id, err := primitive.ObjectIDFromHex(documentID)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": id}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteDocument löscht ein Dokument aus der Sammlung.
+func DeleteDocument(collectionName string, documentID string) error {
+	client, err := NewMongoDB()
+	if err != nil {
+		return err
+	}
+	collection := client.Database("borrowbox").Collection(collectionName)
+	id, err := primitive.ObjectIDFromHex(documentID)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": id}
+	_, err = collection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // FindOne retrieves a single document from the collection based on a filter.
 func getDocumentByID(collectionName string, documentID string) (bson.M, error) {
 	client, err := NewMongoDB()
