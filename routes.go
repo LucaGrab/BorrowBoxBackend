@@ -47,14 +47,15 @@ func getDocumentByIDROute(c *gin.Context) {
 	c.IndentedJSON(200, document)
 }
 
-func getUsers(c *gin.Context) {
-	users, err := getAllDcoumentsByCollection("users")
+func getDocuments(c *gin.Context) {
+	collection := c.Param("collection")
+	documents, err := getAllDcoumentsByCollection(collection)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
 
-	c.IndentedJSON(200, users)
+	c.IndentedJSON(200, documents)
 }
 
 func insertUser(c *gin.Context) {
@@ -107,7 +108,7 @@ func startGinServer() {
 	r.Use(cors.New(config))
 
 	r.GET("user/:id", userById)
-	r.GET("users", getUsers)
+	r.GET("documents/:collection", getDocuments)
 	r.DELETE("user/:id", deleteUser)
 	r.POST("user", insertUser)
 	r.PUT("/user/:id", updateUser)
