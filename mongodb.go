@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -89,16 +88,12 @@ func getDocumentByID(collectionName string, documentID string) (bson.M, error) {
 	}
 	// Query erstellen
 	filter := bson.M{"_id": id}
-	fmt.Println(documentID)
 	// Ergebnis abrufen
 	var result bson.M
 	err = collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("test")
-	fmt.Println(result)
-
 	return result, nil
 }
 
@@ -108,6 +103,31 @@ func getAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 
 	// Query erstellen
 	filter := bson.D{} // Hier kannst du optional eine Filterbedingung angeben
+
+	// Ergebnisse abrufen
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(context.Background())
+
+	// Ergebnisse verarbeiten
+	var results []bson.M
+	if err := cursor.All(context.Background(), &results); err != nil {
+		panic(err)
+	}
+	return results, nil
+}
+
+func getTagIdsByItemId(itemId string) ([]bson.M, error) {
+	client, err := NewMongoDB()
+	collection := client.Database("borrowbox").Collection("itemTag")
+	id, err := primitive.ObjectIDFromHex(itemId)
+	if err != nil {
+		return nil, err
+	}
+	// Query erstellen
+	filter := bson.M{"itemId": id} // Hier kannst du optional eine Filterbedingung angeben
 
 	// Ergebnisse abrufen
 	cursor, err := collection.Find(context.Background(), filter)

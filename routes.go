@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
@@ -22,6 +23,29 @@ func deleteUser(c *gin.Context) {
 	}
 
 	c.IndentedJSON(200, gin.H{"message": "User deleted"})
+}
+
+func getTagsById(itemId string) []string {
+	tags := []string{}
+	tagIds, err := getTagIdsByItemId(itemId)
+	if err != nil {
+		return nil
+	}
+	for _, tagIdMapping := range tagIds {
+		tagId := tagIdMapping["tagId"]
+		if oid, ok := tagId.(primitive.ObjectID); ok {
+			tagIdString := oid.Hex()
+			tag, err := getDocumentByID("tags", tagIdString)
+			if err != nil {
+				return nil
+			}
+			if tagName, ok := tag["name"].(string); ok {
+				tags = append(tags, tagName)
+			}
+		}
+
+	}
+	return tags
 }
 
 func userById(c *gin.Context) {
@@ -43,7 +67,10 @@ func getDocumentByIDROute(c *gin.Context) {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-
+	if collection == "items" {
+		tags := getTagsById(id)
+		document["tags"] = tags
+	}
 	c.IndentedJSON(200, document)
 }
 
