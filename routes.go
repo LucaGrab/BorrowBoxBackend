@@ -91,6 +91,19 @@ func getDocuments(c *gin.Context) {
 		return
 	}
 
+	if collection == "items" {
+		for i := range documents {
+			document := documents[i]
+			// Zugriff auf das "_id" Feld des Dokuments
+			id := document["_id"].(primitive.ObjectID) // Annahme: Verwendung von BSON für MongoDB
+
+			idString := id.Hex()
+
+			tags := getTagsById(idString)
+			document["tags"] = tags
+		}
+	}
+
 	c.IndentedJSON(200, documents)
 }
 
