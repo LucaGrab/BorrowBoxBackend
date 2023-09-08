@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,14 @@ import (
 type User struct {
 	Role  string `json:"role"`
 	Email string `json:"email"`
+}
+
+type Rental struct {
+	User   string    `json:"user"`
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Item   string    `json:"item"`
+	Active bool      `json:"active"`
 }
 
 func deleteUser(c *gin.Context) {
@@ -100,6 +109,23 @@ func insertUser(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusCreated, gin.H{"message": "User inserted successfully"})
+}
+
+func insertRental(c *gin.Context) {
+	var newRental Rental // Ersetze YourDataStruct mit der tatsächlichen Struktur deiner Daten
+
+	if err := c.ShouldBindJSON(&newRental); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	err := InsertDocument("rentals", newRental)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert rental"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Rental inserted successfully"})
 }
 
 func updateUser(c *gin.Context) {
