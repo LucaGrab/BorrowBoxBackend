@@ -119,6 +119,9 @@ func insertRental(c *gin.Context) {
 		return
 	}
 
+	newRental.Start = time.Now()
+	newRental.Active = true
+
 	err := InsertDocument("rentals", newRental)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert rental"})
@@ -166,6 +169,7 @@ func startGinServer() {
 	r.POST("user", insertUser)
 	r.PUT("/user/:id", updateUser)
 	r.GET("getDocumentByID/:collection/:id", getDocumentByIDROute)
+	r.POST("startRental", insertRental)
 
 	r.GET("/hello", func(c *gin.Context) {
 		c.JSON(200, gin.H{
