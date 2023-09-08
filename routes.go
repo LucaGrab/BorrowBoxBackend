@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"time"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -36,7 +35,7 @@ func deleteUser(c *gin.Context) {
 
 func getTagsById(itemId string) []string {
 	tags := []string{}
-	tagIds, err := getTagIdsByItemId(itemId)
+	tagIds, err := getTagIdsByItemId(itemId) //TODO: ersetzen durch getDocumentsByCollectionFiltered
 	if err != nil {
 		return nil
 	}
@@ -98,7 +97,18 @@ func getDocuments(c *gin.Context) {
 			id := document["_id"].(primitive.ObjectID) // Annahme: Verwendung von BSON für MongoDB
 
 			idString := id.Hex()
-
+			rentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", idString, true)
+			if err != nil {
+				c.IndentedJSON(404, gin.H{"message": err.Error()})
+				return
+			}
+			document["available"] = true
+			for _, rental := range rentals{
+				if(rental["active"]==true){
+					document["available"] = false
+					break
+				}
+			}
 			tags := getTagsById(idString)
 			document["tags"] = tags
 		}
@@ -177,7 +187,7 @@ func startGinServer() {
 	r.Use(cors.New(config))
 
 	r.GET("user/:id", userById)
-	r.GET("documents/:collection", getDocuments)
+	r.GET("/:collection", getDocuments)
 	r.DELETE("user/:id", deleteUser)
 	r.POST("user", insertUser)
 	r.PUT("/user/:id", updateUser)
