@@ -171,7 +171,7 @@ func startGinServer() {
 	r.GET("getDocumentByID/:collection/:id", getDocumentByIDROute)
 	r.POST("startRental", insertRental)
 
-	r.GET("/hello", func(c *gin.Context) {
+	r.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
 			"message": "Hello, World!",
 		})
