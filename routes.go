@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +36,7 @@ func deleteUser(c *gin.Context) {
 
 func getTagsById(itemId string) []string {
 	tags := []string{}
-	tagIds, err := getTagIdsByItemId(itemId) //TODO: ersetzen durch getDocumentsByCollectionFiltered
+	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true) //TODO: ersetzen durch getDocumentsByCollectionFiltered
 	if err != nil {
 		return nil
 	}
@@ -103,8 +104,8 @@ func getDocuments(c *gin.Context) {
 				return
 			}
 			document["available"] = true
-			for _, rental := range rentals{
-				if(rental["active"]==true){
+			for _, rental := range rentals {
+				if rental["active"] == true {
 					document["available"] = false
 					break
 				}

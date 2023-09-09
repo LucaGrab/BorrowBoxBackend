@@ -119,45 +119,21 @@ func getAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 	return results, nil
 }
 
-func getTagIdsByItemId(itemId string) ([]bson.M, error) {
-	client, err := NewMongoDB()
-	collection := client.Database("borrowbox").Collection("itemTag")
-	id, err := primitive.ObjectIDFromHex(itemId)
-	if err != nil {
-		return nil, err
-	}
-	// Query erstellen
-	filter := bson.M{"itemId": id} // Hier kannst du optional eine Filterbedingung angeben
-
-	// Ergebnisse abrufen
-	cursor, err := collection.Find(context.Background(), filter)
-	if err != nil {
-		panic(err)
-	}
-	defer cursor.Close(context.Background())
-
-	// Ergebnisse verarbeiten
-	var results []bson.M
-	if err := cursor.All(context.Background(), &results); err != nil {
-		panic(err)
-	}
-	return results, nil
-}
-
 func getDocumentsByCollectionFiltered(collectionName string, attributeName string, filterValue string, filterById bool) ([]bson.M, error) {
 	client, err := NewMongoDB()
 	collection := client.Database("borrowbox").Collection(collectionName)
-	var filter bson.M
-	if(filterById){
+	var formattedFilterValue interface{}
+	if filterById {
 		id, err := primitive.ObjectIDFromHex(filterValue)
 		if err != nil {
 			return nil, err
 		}
-		filter = bson.M{attributeName: id} // Hier kannst du optional eine Filterbedingung angeben
-	}else{
-		filter = bson.M{attributeName: filterValue} // Hier kannst du optional eine Filterbedingung angeben
+		formattedFilterValue = id
+	} else {
+		formattedFilterValue = filterValue
 	}
 
+	filter := bson.M{attributeName: formattedFilterValue} // Hier kannst du optional eine Filterbedingung angeben
 
 	// Ergebnisse abrufen
 	cursor, err := collection.Find(context.Background(), filter)
