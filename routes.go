@@ -34,6 +34,31 @@ func deleteUser(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{"message": "User deleted"})
 }
 
+func getUserItems(c *gin.Context) {
+	id := c.Param("id")
+	rentals, err := getDocumentsByCollectionFiltered("rentals", "userId", id, true)
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": err.Error()})
+		return
+	}
+	itemIds := []string{}
+	for _, rental := range rentals {
+		if rental["active"] == true {
+			itemIds = append(itemIds, rental["itemId"].(primitive.ObjectID).Hex())
+		}
+	}
+	items := []bson.M{}
+	for _, itemId := range itemIds {
+		item, err := getDocumentByID("items", itemId)
+		if err != nil {
+			c.IndentedJSON(404, gin.H{"message": err.Error()})
+			return
+		}
+		items = append(items, item)
+	}
+	c.IndentedJSON(200, items)
+}
+
 func getTagsById(itemId string) []string {
 	tags := []string{}
 	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true) //TODO: ersetzen durch getDocumentsByCollectionFiltered
@@ -194,6 +219,7 @@ func startGinServer() {
 	r.PUT("/user/:id", updateUser)
 	r.GET("getDocumentByID/:collection/:id", getDocumentByIDROute)
 	r.POST("startRental", insertRental)
+	r.GET("useritems/:id", getUserItems)
 
 	r.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
