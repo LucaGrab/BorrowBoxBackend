@@ -16,11 +16,12 @@ type User struct {
 }
 
 type Rental struct {
-	User   string    `json:"user"`
-	Start  time.Time `json:"start"`
-	End    time.Time `json:"end"`
-	Item   string    `json:"item"`
-	Active bool      `json:"active"`
+	UserEmail string             `json:"userEmail"`
+	UserId    primitive.ObjectID `json:"userId" bson:"userId"`
+	Start     time.Time          `json:"start"`
+	End       time.Time          `json:"end"`
+	ItemId    primitive.ObjectID `json:"itemId" bson:"itemId"`
+	Active    bool               `json:"active"`
 }
 
 func deleteUser(c *gin.Context) {
