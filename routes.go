@@ -24,6 +24,16 @@ type Rental struct {
 	Active    bool               `json:"active"`
 }
 
+func getUserIdByEmail(email string) primitive.ObjectID {
+	id, err := primitive.ObjectIDFromHex("")
+	if err != nil {
+
+	}
+	userIds, err := getDocumentsByCollectionFiltered("users", "email", email, true)
+
+	return id
+}
+
 func deleteUser(c *gin.Context) {
 	id := c.Param("id")
 	err := DeleteDocument("users", id)
