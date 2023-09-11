@@ -119,21 +119,22 @@ func getAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 	return results, nil
 }
 
-func getDocumentsByCollectionFiltered(collectionName string, attributeName string, filterValue string, filterById bool) ([]bson.M, error) {
+func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool,
+	secondAttributeName string, secondFilterValue any, secondFilterById bool) ([]bson.M, error) {
 	client, err := NewMongoDB()
 	collection := client.Database("borrowbox").Collection(collectionName)
 	var formattedFilterValue interface{}
-	if filterById {
-		id, err := primitive.ObjectIDFromHex(filterValue)
+	if firstFilterById {
+		id, err := primitive.ObjectIDFromHex(firstFilterValue)
 		if err != nil {
 			return nil, err
 		}
 		formattedFilterValue = id
 	} else {
-		formattedFilterValue = filterValue
+		formattedFilterValue = firstFilterValue
 	}
 
-	filter := bson.M{attributeName: formattedFilterValue} // Hier kannst du optional eine Filterbedingung angeben
+	filter := bson.M{firstAttributeName: formattedFilterValue} // Hier kannst du optional eine Filterbedingung angeben
 
 	// Ergebnisse abrufen
 	cursor, err := collection.Find(context.Background(), filter)

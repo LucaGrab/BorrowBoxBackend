@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -37,7 +38,7 @@ func deleteUser(c *gin.Context) {
 
 func getUserItems(c *gin.Context) {
 	id := c.Param("id")
-	rentals, err := getDocumentsByCollectionFiltered("rentals", "userId", id, true)
+	rentals, err := getDocumentsByCollectionFiltered("rentals", "userId", id, true, "null", "null", false)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
@@ -62,7 +63,7 @@ func getUserItems(c *gin.Context) {
 
 func getTagsById(itemId string) []string {
 	tags := []string{}
-	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true) //TODO: ersetzen durch getDocumentsByCollectionFiltered
+	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true, "null", "null", false) //TODO: ersetzen durch getDocumentsByCollectionFiltered
 	if err != nil {
 		return nil
 	}
@@ -105,6 +106,24 @@ func getDocumentByIDROute(c *gin.Context) {
 	if collection == "items" {
 		tags := getTagsById(id)
 		document["tags"] = tags
+		currentRentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", id, true, "active", true, false)
+		if err != nil {
+			c.IndentedJSON(404, gin.H{"message": err.Error()})
+			return
+		}
+		if len(currentRentals) == 0 {
+			document["available"] = true
+		} else {
+			document["available"] = false
+			currentRenterId := currentRentals[0]["userId"].(primitive.ObjectID).Hex()
+			currentRenter, err := getDocumentByID("users", currentRenterId)
+			if err != nil {
+				c.IndentedJSON(404, gin.H{"message": err.Error()})
+				return
+			}
+			document["currentRenter"] = currentRenter["email"]
+			fmt.Println("Das Array ist nicht leer.")
+		}
 	}
 	c.IndentedJSON(200, document)
 }
@@ -124,7 +143,7 @@ func getDocuments(c *gin.Context) {
 			id := document["_id"].(primitive.ObjectID) // Annahme: Verwendung von BSON für MongoDB
 
 			idString := id.Hex()
-			rentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", idString, true)
+			rentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", idString, true, "null", "null", false)
 			if err != nil {
 				c.IndentedJSON(404, gin.H{"message": err.Error()})
 				return
