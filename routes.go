@@ -38,7 +38,7 @@ func deleteUser(c *gin.Context) {
 
 func getUserItems(c *gin.Context) {
 	id := c.Param("id")
-	rentals, err := getDocumentsByCollectionFiltered("rentals", "userId", id, true, "null", "null", false)
+	rentals, err := getDocumentsByCollectionFiltered("rentals", "userId", id, true)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
@@ -63,7 +63,7 @@ func getUserItems(c *gin.Context) {
 
 func getTagsById(itemId string) []string {
 	tags := []string{}
-	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true, "null", "null", false) //TODO: ersetzen durch getDocumentsByCollectionFiltered
+	tagIds, err := getDocumentsByCollectionFiltered("itemTag", "itemId", itemId, true) //TODO: ersetzen durch getDocumentsByCollectionFiltered
 	if err != nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func getDocumentByIDROute(c *gin.Context) {
 	if collection == "items" {
 		tags := getTagsById(id)
 		document["tags"] = tags
-		currentRentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", id, true, "active", true, false)
+		currentRentals, err := getDocumentsByCollectionFiltered2("rentals", "itemId", id, true, "active", true, false)
 		if err != nil {
 			c.IndentedJSON(404, gin.H{"message": err.Error()})
 			return
@@ -143,7 +143,7 @@ func getDocuments(c *gin.Context) {
 			id := document["_id"].(primitive.ObjectID) // Annahme: Verwendung von BSON für MongoDB
 
 			idString := id.Hex()
-			rentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", idString, true, "null", "null", false)
+			rentals, err := getDocumentsByCollectionFiltered("rentals", "itemId", idString, true)
 			if err != nil {
 				c.IndentedJSON(404, gin.H{"message": err.Error()})
 				return

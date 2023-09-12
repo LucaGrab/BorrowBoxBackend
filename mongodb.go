@@ -131,8 +131,7 @@ func getAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 	return results, nil
 }
 
-func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool,
-	secondAttributeName string, secondFilterValue any, secondFilterById bool) ([]bson.M, error) {
+func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool) ([]bson.M, error) {
 	client, err := NewMongoDB()
 	collection := client.Database("borrowbox").Collection(collectionName)
 	var formattedFilterValue interface{}
@@ -148,6 +147,41 @@ func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName 
 	}
 
 	filter := bson.M{firstAttributeName: formattedFilterValue} // Hier kannst du optional eine Filterbedingung angeben
+
+	// Ergebnisse abrufen
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(context.Background())
+
+	// Ergebnisse verarbeiten
+	var results []bson.M
+	if err := cursor.All(context.Background(), &results); err != nil {
+		panic(err)
+	}
+	defer client.Disconnect(context.TODO())
+	return results, nil
+}
+
+func getDocumentsByCollectionFiltered2(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool,
+	secondAttributeName string, secondFilterValue bool, secondFilterById bool) ([]bson.M, error) {
+	client, err := NewMongoDB()
+	collection := client.Database("borrowbox").Collection(collectionName)
+	var formattedFilterValue interface{}
+	if firstFilterById {
+		id, err := primitive.ObjectIDFromHex(firstFilterValue)
+		if err != nil {
+			defer client.Disconnect(context.TODO())
+			return nil, err
+		}
+		formattedFilterValue = id
+	} else {
+		formattedFilterValue = firstFilterValue
+	}
+
+	filter := bson.M{firstAttributeName: formattedFilterValue,
+		secondAttributeName: secondFilterValue} // Hier kannst du optional eine Filterbedingung angeben
 
 	// Ergebnisse abrufen
 	cursor, err := collection.Find(context.Background(), filter)
