@@ -29,11 +29,13 @@ func NewMongoDB() (*mongo.Client, error) {
 func InsertDocument(collectionName string, document interface{}) error {
 	client, err := NewMongoDB()
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	collection := client.Database("borrowbox").Collection(collectionName)
 	_, err = collection.InsertOne(context.Background(), document)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	return nil
@@ -43,18 +45,22 @@ func InsertDocument(collectionName string, document interface{}) error {
 func UpdateDocument(collectionName string, documentID string, update interface{}) error {
 	client, err := NewMongoDB()
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	collection := client.Database("borrowbox").Collection(collectionName)
 	id, err := primitive.ObjectIDFromHex(documentID)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	filter := bson.M{"_id": id}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
+
 	return nil
 }
 
@@ -62,16 +68,19 @@ func UpdateDocument(collectionName string, documentID string, update interface{}
 func DeleteDocument(collectionName string, documentID string) error {
 	client, err := NewMongoDB()
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	collection := client.Database("borrowbox").Collection(collectionName)
 	id, err := primitive.ObjectIDFromHex(documentID)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	filter := bson.M{"_id": id}
 	_, err = collection.DeleteOne(context.Background(), filter)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return err
 	}
 	return nil
@@ -84,6 +93,7 @@ func getDocumentByID(collectionName string, documentID string) (bson.M, error) {
 	// ID in ObjectID konvertieren
 	id, err := primitive.ObjectIDFromHex(documentID)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return nil, err
 	}
 	// Query erstellen
@@ -92,6 +102,7 @@ func getDocumentByID(collectionName string, documentID string) (bson.M, error) {
 	var result bson.M
 	err = collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
+		defer client.Disconnect(context.TODO())
 		return nil, err
 	}
 	return result, nil
@@ -116,6 +127,7 @@ func getAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 	if err := cursor.All(context.Background(), &results); err != nil {
 		panic(err)
 	}
+	defer client.Disconnect(context.TODO())
 	return results, nil
 }
 
@@ -127,6 +139,7 @@ func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName 
 	if firstFilterById {
 		id, err := primitive.ObjectIDFromHex(firstFilterValue)
 		if err != nil {
+			defer client.Disconnect(context.TODO())
 			return nil, err
 		}
 		formattedFilterValue = id
@@ -148,5 +161,6 @@ func getDocumentsByCollectionFiltered(collectionName string, firstAttributeName 
 	if err := cursor.All(context.Background(), &results); err != nil {
 		panic(err)
 	}
+	defer client.Disconnect(context.TODO())
 	return results, nil
 }
