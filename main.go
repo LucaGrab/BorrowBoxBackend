@@ -1,6 +1,10 @@
 package main
 
 import (
+	"BorrowBox/database"
+	"BorrowBox/routes"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -8,7 +12,19 @@ import (
 
 func main() {
 	loadEnvVariables()
-	startGinServer()
+	database.Connect()
+
+	r := gin.Default()
+
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8100"} // Add your frontend addresses here
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
+	r.Use(cors.New(config))
+
+	routes.Setup(r)
+
+	r.Run(":8080") // Starte den Gin-Server auf Port 8080
+
 }
 
 func loadEnvVariables() {

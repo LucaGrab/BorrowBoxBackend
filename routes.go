@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -305,6 +306,64 @@ func updateUser(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "User updated successfully"})
 }
 
+func isValueInArray(jsonArray string, value string, fieldName string) bool {
+	// JSON-Array in ein Slice von Maps (JSON-Objekte) konvertieren
+	var data []map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonArray), &data); err != nil {
+		panic(err)
+	}
+
+	// Durch das Array iterieren und überprüfen, ob der Wert im Feld vorhanden ist
+	for _, item := range data {
+		if fieldValue, ok := item[fieldName].(string); ok && fieldValue == value {
+			return true
+		}
+	}
+	return false
+}
+
+func login(c *gin.Context) {
+
+	var loginData map[string]string // Erstelle eine Map, um E-Mail und Passwort zu speichern
+	// Versuche, das JSON aus dem Request-Body in die loginData-Map zu binden
+	if err := c.ShouldBindJSON(&loginData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	// Hier kannst du auf die Werte von E-Mail und Passwort zugreifen
+	email := loginData["email"]
+	password := loginData["password"]
+	print(email)
+	print(password)
+	users, err := getAllDcoumentsByCollection("users")
+	if err != nil {
+		return
+	}
+	// JSON-Array erstellen
+	var jsonArray []string
+	for _, bsonData := range users {
+		jsonBytes, err := bson.MarshalExtJSON(bsonData, false, false)
+		if err != nil {
+			fmt.Println("Fehler bei der Umwandlung in JSON:", err)
+			return
+		}
+		jsonString := string(jsonBytes)
+		jsonArray = append(jsonArray, jsonString)
+	}
+
+	//finalJSON := "[" + strings.Join(jsonArray, ",") + "]"
+
+	//fmt.Println(isValueInArray(finalJSON, email, "user"))
+
+	//fmt.Println(finalJSON)
+
+	loginToken := "99123455646372810987"
+
+	c.JSON(http.StatusOK, gin.H{"loginToken": loginToken})
+
+}
+
 func startGinServer() {
 
 	r := gin.Default()
@@ -322,7 +381,7 @@ func startGinServer() {
 	r.GET("getDocumentByID/:collection/:id", getDocumentByIDROute)
 	r.POST("startRental", insertRental)
 	r.GET("useritems/:id", getUserItems)
-	r.GET("test/:collection/:id", getDocumentByIDROute2)
+	r.POST("login", login)
 
 	r.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
