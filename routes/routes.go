@@ -2,6 +2,7 @@ package routes
 
 import (
 	"BorrowBox/controllers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,6 +17,8 @@ func Setup(app *gin.Engine) {
 	app.POST("startRental", controllers.InsertRental)
 	app.GET("useritems/:id", controllers.GetUserItems)
 	app.POST("login", controllers.Login)
+	app.GET("test/items/:id", controllers.GetItemByIdWithTheActiveRental)
+	app.GET("testDetail/items/:id", controllers.GetItemByIdWithAllRentals)
 
 	app.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
