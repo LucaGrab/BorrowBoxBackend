@@ -196,3 +196,18 @@ func GetDocumentsByCollectionFiltered2(collectionName string, firstAttributeName
 	defer client.Disconnect(context.TODO())
 	return results, nil
 }
+
+func NewDBAggregation(collectionName string, pipeline []bson.M) ([]bson.M, error) {
+	client, err := NewMongoDB()
+	collection := client.Database("borrowbox").Collection(collectionName)
+	cursor, err := collection.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		panic(err)
+	}
+	var results []bson.M
+	if err := cursor.All(context.Background(), &results); err != nil {
+		panic(err)
+	}
+	defer client.Disconnect(context.TODO())
+	return results, nil
+}
