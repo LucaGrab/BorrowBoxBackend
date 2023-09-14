@@ -3,10 +3,22 @@ package controllers
 import (
 	"BorrowBox/database"
 	"BorrowBox/models"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"net/http"
 )
+
+func GetUsers(c *gin.Context) {
+	collection := "users"
+	documents, err := database.GetAllDcoumentsByCollection(collection)
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, documents)
+}
 
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")

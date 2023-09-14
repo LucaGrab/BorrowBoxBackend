@@ -9,7 +9,8 @@ import (
 func Setup(app *gin.Engine) {
 
 	app.GET("user/:id", controllers.UserById)
-	app.GET("/:collection", controllers.GetDocuments)
+	app.GET("users", controllers.GetUsers)
+	app.GET("items", controllers.GetItems)
 	app.DELETE("user/:id", controllers.DeleteUser)
 	app.POST("user", controllers.InsertUser)
 	app.PUT("/user/:id", controllers.UpdateUser)

@@ -8,6 +8,75 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func GetItems(c *gin.Context) {
+	collection := "items"
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "rentals",
+				"localField":   "_id",
+				"foreignField": "itemId",
+				"as":           "rentals",
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"available": bson.M{
+					"$not": bson.M{
+						"$anyElementTrue": bson.M{
+							"$map": bson.M{
+								"input": "$rentals",
+								"as":    "rental",
+								"in":    "$$rental.active",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "itemTag",
+				"localField":   "_id",
+				"foreignField": "itemId",
+				"as":           "itemTags",
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "tags",
+				"localField":   "itemTags.tagId",
+				"foreignField": "_id",
+				"as":           "tags",
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":         1,
+				"description": 1,
+				"location":    1,
+				"name":        1,
+				"tags": bson.M{
+					"$map": bson.M{
+						"input": "$tags",
+						"as":    "tag",
+						"in":    "$$tag.name",
+					},
+				},
+				"available": 1,
+			},
+		},
+	}
+
+	documents, err := database.NewDBAggregation(collection, pipeline)
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, documents)
+}
+
 func GetActiveUserItems(c *gin.Context) {
 	id := c.Param("id")
 	formattedId, err := primitive.ObjectIDFromHex(id)
