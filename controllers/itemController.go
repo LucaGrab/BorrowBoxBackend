@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"BorrowBox/database"
+	"BorrowBox/models"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -275,7 +277,7 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		},
 		{
 			"$project": bson.M{
-				"_id":         0, // Ausblenden der _id-Felder
+				"_id":         1, // Ausblenden der _id-Felder
 				"description": 1,
 				"location":    1,
 				"name":        1,
@@ -297,5 +299,45 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 	}
 	document := documents[0]
 
-	c.IndentedJSON(200, document)
+	//------------------------- hier wird das document in ein item umgewandelt --------------------
+	//tags müssen iwie umgewandelt werden
+	var tagNamesSlice []string
+	tagNamesPrimitiveA, ok := document["tagNames"].(primitive.A)
+	if ok {
+		for _, tag := range tagNamesPrimitiveA {
+			tagNamesSlice = append(tagNamesSlice, tag.(string))
+		}
+	}
+
+	var item models.Item
+	item = models.Item{
+		ID:          document["_id"].(primitive.ObjectID),
+		TagNames:    tagNamesSlice,
+		Name:        document["name"].(string),
+		Location:    document["location"].(string),
+		Description: document["description"].(string),
+	}
+	//weil das mit user join oben nicht geht
+	activeRental, ok := document["activeRental"].(primitive.M)
+	if ok {
+		active, activeOK := activeRental["active"].(bool)
+		if activeOK {
+			item.Available = !active
+			if active {
+				fmt.Println(activeRental["userId"].(primitive.ObjectID).Hex())
+				user, err := database.GetDocumentByID("users", activeRental["userId"].(primitive.ObjectID).Hex())
+				if err != nil {
+					c.IndentedJSON(404, gin.H{"message": err.Error()})
+					return
+				}
+				item.CurrentRenter = user["username"].(string)
+			}
+		} else {
+			item.Available = true
+		}
+	} else {
+		item.Available = true
+	}
+	//-------------------------------------------------------------------------------------------
+	c.IndentedJSON(200, item)
 }
