@@ -44,32 +44,6 @@ func GetActiveUserItems(c *gin.Context) {
 	c.IndentedJSON(200, document)
 }
 
-/*
-	func GetUserItems(c *gin.Context) {
-		id := c.Param("id")
-		rentals, err := database.GetDocumentsByCollectionFiltered("rentals", "userId", id, true)
-		if err != nil {
-			c.IndentedJSON(404, gin.H{"message": err.Error()})
-			return
-		}
-		itemIds := []string{}
-		for _, rental := range rentals {
-			if rental["active"] == true {
-				itemIds = append(itemIds, rental["itemId"].(primitive.ObjectID).Hex())
-			}
-		}
-		items := []bson.M{}
-		for _, itemId := range itemIds {
-			item, err := database.GetDocumentByID("items", itemId)
-			if err != nil {
-				c.IndentedJSON(404, gin.H{"message": err.Error()})
-				return
-			}
-			items = append(items, item)
-		}
-		c.IndentedJSON(200, items)
-	}
-*/
 func GetItemByIdWithAllRentals(c *gin.Context) {
 	collection := "items"
 	id := c.Param("id")
