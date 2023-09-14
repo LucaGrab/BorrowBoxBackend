@@ -2,12 +2,13 @@ package database
 
 import (
 	"context"
+	"os"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"os"
 )
 
 // NewMongoDB creates a new MongoDB instance.
@@ -112,74 +113,6 @@ func GetAllDcoumentsByCollection(collectionName string) ([]bson.M, error) {
 
 	// Query erstellen
 	filter := bson.D{} // Hier kannst du optional eine Filterbedingung angeben
-
-	// Ergebnisse abrufen
-	cursor, err := collection.Find(context.Background(), filter)
-	if err != nil {
-		panic(err)
-	}
-	defer cursor.Close(context.Background())
-
-	// Ergebnisse verarbeiten
-	var results []bson.M
-	if err := cursor.All(context.Background(), &results); err != nil {
-		panic(err)
-	}
-	defer client.Disconnect(context.TODO())
-	return results, nil
-}
-
-func GetDocumentsByCollectionFiltered(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool) ([]bson.M, error) {
-	client, err := NewMongoDB()
-	collection := client.Database("borrowbox").Collection(collectionName)
-	var formattedFilterValue interface{}
-	if firstFilterById {
-		id, err := primitive.ObjectIDFromHex(firstFilterValue)
-		if err != nil {
-			defer client.Disconnect(context.TODO())
-			return nil, err
-		}
-		formattedFilterValue = id
-	} else {
-		formattedFilterValue = firstFilterValue
-	}
-
-	filter := bson.M{firstAttributeName: formattedFilterValue} // Hier kannst du optional eine Filterbedingung angeben
-
-	// Ergebnisse abrufen
-	cursor, err := collection.Find(context.Background(), filter)
-	if err != nil {
-		panic(err)
-	}
-	defer cursor.Close(context.Background())
-
-	// Ergebnisse verarbeiten
-	var results []bson.M
-	if err := cursor.All(context.Background(), &results); err != nil {
-		panic(err)
-	}
-	defer client.Disconnect(context.TODO())
-	return results, nil
-}
-
-func GetDocumentsByCollectionFiltered2(collectionName string, firstAttributeName string, firstFilterValue string, firstFilterById bool,
-	secondAttributeName string, secondFilterValue bool, secondFilterById bool) ([]bson.M, error) {
-	client, err := NewMongoDB()
-	collection := client.Database("borrowbox").Collection(collectionName)
-	var formattedFilterValue interface{}
-	if firstFilterById {
-		id, err := primitive.ObjectIDFromHex(firstFilterValue)
-		if err != nil {
-			defer client.Disconnect(context.TODO())
-			return nil, err
-		}
-		formattedFilterValue = id
-	} else {
-		formattedFilterValue = firstFilterValue
-	}
-
-	filter := bson.M{firstAttributeName: formattedFilterValue,
-		secondAttributeName: secondFilterValue} // Hier kannst du optional eine Filterbedingung angeben
 
 	// Ergebnisse abrufen
 	cursor, err := collection.Find(context.Background(), filter)
