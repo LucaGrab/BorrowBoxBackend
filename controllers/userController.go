@@ -3,6 +3,7 @@ package controllers
 import (
 	"BorrowBox/database"
 	"BorrowBox/models"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,9 @@ func UserById(c *gin.Context) {
 		return
 	}
 
+	// Entfernen Sie das Passwort aus dem Benutzerobjekt
+	delete(user, "password")
+	fmt.Println(user)
 	c.IndentedJSON(200, user)
 }
 
