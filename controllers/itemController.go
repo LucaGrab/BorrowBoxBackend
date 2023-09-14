@@ -18,7 +18,6 @@ func GetActiveUserItems(c *gin.Context) {
 		{
 			"$match": bson.M{"userId": formattedId, "active": true},
 		},
-
 		{
 			"$lookup": bson.M{
 				"from":         "items",
@@ -28,9 +27,18 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 		{
+			"$unwind": "$items", // Entfalte das "items"-Array
+		},
+		{
+			"$group": bson.M{
+				"_id":   nil,
+				"items": bson.M{"$push": "$items"},
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":   0,
-				"items": "$items",
+				"items": 1,
 			},
 		},
 	}
@@ -39,8 +47,7 @@ func GetActiveUserItems(c *gin.Context) {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	document := documents[0] //warum hat documents zusätzlich ein array außen in der antwort - so ist es trotzdem ein array von items
-
+	document := documents[0] // entfernt random array was sonst immer kommt - zeigt trotzdem mehr items
 	c.IndentedJSON(200, document)
 }
 
