@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"BorrowBox/database"
+	"BorrowBox/models"
+	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
@@ -26,43 +27,33 @@ func isValueInArray(jsonArray string, value string, fieldName string) bool {
 }
 
 func Login(c *gin.Context) {
-
-	var loginData map[string]string // Erstelle eine Map, um E-Mail und Passwort zu speichern
-	// Versuche, das JSON aus dem Request-Body in die loginData-Map zu binden
+	var loginData map[string]string
 	if err := c.ShouldBindJSON(&loginData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
 		return
 	}
 
-	// Hier kannst du auf die Werte von E-Mail und Passwort zugreifen
 	email := loginData["email"]
 	password := loginData["password"]
-	print(email)
-	print(password)
-	users, err := database.GetAllDcoumentsByCollection("users")
+	client, err := database.NewMongoDB()
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
-	// JSON-Array erstellen
-	var jsonArray []string
-	for _, bsonData := range users {
-		jsonBytes, err := bson.MarshalExtJSON(bsonData, false, false)
-		if err != nil {
-			fmt.Println("Fehler bei der Umwandlung in JSON:", err)
-			return
-		}
-		jsonString := string(jsonBytes)
-		jsonArray = append(jsonArray, jsonString)
+
+	users := client.Database("borrowbox").Collection("users")
+
+	filter := bson.M{
+		"username": email,
+		"password": password,
 	}
 
-	//finalJSON := "[" + strings.Join(jsonArray, ",") + "]"
-
-	//fmt.Println(isValueInArray(finalJSON, email, "user"))
-
-	//fmt.Println(finalJSON)
-
-	loginToken := "99123455646372810987"
-
+	var user models.User
+	if err := users.FindOne(context.TODO(), filter).Decode(&user); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		print("invalid user")
+		return
+	}
+	loginToken := user.ID
 	c.JSON(http.StatusOK, gin.H{"loginToken": loginToken})
-
 }
