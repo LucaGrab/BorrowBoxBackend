@@ -15,7 +15,7 @@ func Setup(app *gin.Engine) {
 	app.PUT("/user/:id", controllers.UpdateUser)
 	app.GET("getDocumentByID/:collection/:id", controllers.GetDocumentByIDROute)
 	app.POST("startRental", controllers.InsertRental)
-	app.GET("useritems/:id", controllers.GetUserItems)
+	app.GET("useritems/:id", controllers.GetActiveUserItems)
 	app.POST("login", controllers.Login)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)

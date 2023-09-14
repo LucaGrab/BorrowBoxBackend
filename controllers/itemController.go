@@ -8,31 +8,68 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func GetUserItems(c *gin.Context) {
+func GetActiveUserItems(c *gin.Context) {
 	id := c.Param("id")
-	rentals, err := database.GetDocumentsByCollectionFiltered("rentals", "userId", id, true)
+	formattedId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return
+	}
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{"userId": formattedId, "active": true},
+		},
+
+		{
+			"$lookup": bson.M{
+				"from":         "items",
+				"localField":   "itemId",
+				"foreignField": "_id",
+				"as":           "items",
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":   0,
+				"items": "$items",
+			},
+		},
+	}
+	documents, err := database.NewDBAggregation("rentals", pipeline)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	itemIds := []string{}
-	for _, rental := range rentals {
-		if rental["active"] == true {
-			itemIds = append(itemIds, rental["itemId"].(primitive.ObjectID).Hex())
-		}
-	}
-	items := []bson.M{}
-	for _, itemId := range itemIds {
-		item, err := database.GetDocumentByID("items", itemId)
+	document := documents[0] //warum hat documents zusätzlich ein array außen in der antwort - so ist es trotzdem ein array von items
+
+	c.IndentedJSON(200, document)
+}
+
+/*
+	func GetUserItems(c *gin.Context) {
+		id := c.Param("id")
+		rentals, err := database.GetDocumentsByCollectionFiltered("rentals", "userId", id, true)
 		if err != nil {
 			c.IndentedJSON(404, gin.H{"message": err.Error()})
 			return
 		}
-		items = append(items, item)
+		itemIds := []string{}
+		for _, rental := range rentals {
+			if rental["active"] == true {
+				itemIds = append(itemIds, rental["itemId"].(primitive.ObjectID).Hex())
+			}
+		}
+		items := []bson.M{}
+		for _, itemId := range itemIds {
+			item, err := database.GetDocumentByID("items", itemId)
+			if err != nil {
+				c.IndentedJSON(404, gin.H{"message": err.Error()})
+				return
+			}
+			items = append(items, item)
+		}
+		c.IndentedJSON(200, items)
 	}
-	c.IndentedJSON(200, items)
-}
-
+*/
 func GetItemByIdWithAllRentals(c *gin.Context) {
 	collection := "items"
 	id := c.Param("id")
