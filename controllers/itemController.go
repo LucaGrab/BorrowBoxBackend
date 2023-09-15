@@ -13,27 +13,32 @@ import (
 
 func InsertItem(c *gin.Context) {
 
-	var newItem models.ItemForInsert
+	var newItem models.Item
 
 	if err := c.ShouldBindJSON(&newItem); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
 		return
 	}
 	newItem.ID = primitive.NewObjectID()
-	_, err := database.InsertDocument("items", newItem)
+	//item ohne tags haben
+	itemForInsert := models.ItemForInsert{
+		ID:          newItem.ID,
+		Name:        newItem.Name,
+		Location:    newItem.Location,
+		Description: newItem.Description,
+	}
+	_, err := database.InsertDocument("items", itemForInsert)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert item"})
 		return
 	}
 
-	mockTags := []string{"tag1", "Bücher"}
-
-	tags, err := GetOrCreateTags(mockTags)
+	tags, err := GetOrCreateTags(newItem.TagNames)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
 		return
 	}
-
+	fmt.Println(newItem.TagNames)
 	err = InsertTagItem(newItem.ID, tags)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
