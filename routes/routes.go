@@ -22,6 +22,7 @@ func Setup(app *gin.Engine) {
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
 
 	app.POST("startRental", controllers.InsertRental)
+	app.PUT("endRental/:itemId", controllers.EndRental)
 
 	app.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
