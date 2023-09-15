@@ -20,6 +20,7 @@ func Setup(app *gin.Engine) {
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
+	app.POST("addItem", controllers.InsertItem)
 
 	app.POST("startRental", controllers.InsertRental)
 

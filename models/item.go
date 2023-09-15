@@ -11,3 +11,9 @@ type Item struct {
 	Available     bool               `json:"available"`
 	CurrentRenter string             `json:"currentRenter"`
 }
+
+type ItemForInsert struct {
+	Name        string `json:"name"`
+	Location    string `json:"location"`
+	Description string `json:"description"`
+}

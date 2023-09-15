@@ -4,11 +4,38 @@ import (
 	"BorrowBox/database"
 	"BorrowBox/models"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func InsertItem(c *gin.Context) {
+	/*
+		var newItem models.ItemForInsert
+
+		if err := c.ShouldBindJSON(&newItem); err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+			return
+		}
+
+			itemId, err := database.InsertDocument("items", newItem)
+			if err != nil {
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert item"})
+				return
+			}
+			fmt.Println(itemId)
+	*/
+	mockTags := []string{"tag1", "Bücher", "tag3", "Mathe"}
+
+	tags, _ := GetOrCreateTags(mockTags)
+
+	fmt.Println("result")
+	fmt.Println(tags)
+
+	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Item inserted successfully"})
+}
 
 func GetItems(c *gin.Context) {
 	collection := "items"

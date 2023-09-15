@@ -3,9 +3,10 @@ package controllers
 import (
 	"BorrowBox/database"
 	"BorrowBox/models"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func InsertRental(c *gin.Context) {
@@ -19,7 +20,7 @@ func InsertRental(c *gin.Context) {
 	newRental.Start = time.Now()
 	newRental.Active = true
 
-	err := database.InsertDocument("rentals", newRental)
+	_, err := database.InsertDocument("rentals", newRental)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert rental"})
 		return
