@@ -1,6 +1,7 @@
 package database
 
 import (
+	"BorrowBox/models"
 	"context"
 	"os"
 
@@ -143,4 +144,17 @@ func NewDBAggregation(collectionName string, pipeline []bson.M) ([]bson.M, error
 	}
 	defer client.Disconnect(context.TODO())
 	return results, nil
+}
+
+func GetActiveRentalByItemId(itemId primitive.ObjectID) models.RentalWithId {
+	client, err := NewMongoDB()
+	collection := client.Database("borrowbox").Collection("rentals")
+	filter := bson.M{"itemId": itemId, "active": true}
+	var result models.RentalWithId
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		panic(err)
+	}
+	defer client.Disconnect(context.TODO())
+	return result
 }
