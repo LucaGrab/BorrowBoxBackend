@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func GetOrCreateTags(tagNames []string) ([]models.Tag, error) {
+func GetOrCreateTags(tagNames []string) ([]primitive.ObjectID, error) {
 	client, err := database.NewMongoDB()
 	if err != nil {
 		return nil, err
@@ -17,7 +17,7 @@ func GetOrCreateTags(tagNames []string) ([]models.Tag, error) {
 	defer client.Disconnect(context.TODO())
 
 	collection := client.Database("borrowbox").Collection("tags")
-	var tags []models.Tag
+	var tagIDs []primitive.ObjectID
 
 	// Erstellen Sie eine Liste der Tag-Namen, die gesucht werden sollen
 	filter := bson.M{"name": bson.M{"$in": tagNames}}
@@ -47,7 +47,7 @@ func GetOrCreateTags(tagNames []string) ([]models.Tag, error) {
 	for _, tagName := range tagNames {
 		if tag, ok := existingTags[tagName]; ok {
 			// Der Tag existiert bereits, fügen Sie ihn zur Liste hinzu
-			tags = append(tags, tag)
+			tagIDs = append(tagIDs, tag.ID)
 		} else {
 			// Der Tag existiert nicht, fügen Sie ihn zur Liste hinzu
 			tagsToInsert = append(tagsToInsert, bson.M{"_id": primitive.NewObjectID(), "name": tagName})
@@ -55,32 +55,43 @@ func GetOrCreateTags(tagNames []string) ([]models.Tag, error) {
 	}
 
 	if len(tagsToInsert) > 0 {
-		_, err := collection.InsertMany(context.Background(), tagsToInsert)
+		results, err := collection.InsertMany(context.Background(), tagsToInsert)
 		if err != nil {
 			return nil, err
 		}
 
-		// Fügen Sie alle Tags aus tagsToInsert zu tags hinzu
-		for _, tagToInsert := range tagsToInsert {
-			tag, ok := tagToInsert.(bson.M)
-			if !ok {
-				return nil, err
-			}
-
-			objectID, ok := tag["_id"].(primitive.ObjectID)
-			if !ok {
-				return nil, err
-			}
-
-			name, _ := tag["name"].(string)
-
-			newTag := models.Tag{
-				ID:   objectID,
-				Name: name,
-			}
-			tags = append(tags, newTag)
+		for _, result := range results.InsertedIDs {
+			tagIDs = append(tagIDs, result.(primitive.ObjectID))
 		}
+
 	}
 
-	return tags, nil
+	return tagIDs, nil
+}
+
+func InsertTagItem(itemId primitive.ObjectID, tagIds []primitive.ObjectID) error {
+	client, err := database.NewMongoDB()
+	if err != nil {
+		return err
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database("borrowbox").Collection("itemTag")
+	// Erstellen Sie ein Array von Einträgen, wobei jede Tag-ID mit derselben Item-ID verknüpft ist
+	var entries []interface{}
+	for _, tagID := range tagIds {
+		entry := bson.M{
+			"itemId": itemId, // Die ID des Items
+			"tagId":  tagID,  // Die ID des Tags
+		}
+		entries = append(entries, entry)
+	}
+
+	// Fügen Sie alle Einträge auf einmal in die Tabelle ein
+	_, err = collection.InsertMany(context.Background(), entries)
+	if err != nil {
+		// Handle Fehler, falls die Einfügeoperation fehlschlägt
+		return err
+	}
+	return nil
 }

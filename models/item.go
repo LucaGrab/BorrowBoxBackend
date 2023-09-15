@@ -13,7 +13,8 @@ type Item struct {
 }
 
 type ItemForInsert struct {
-	Name        string `json:"name"`
-	Location    string `json:"location"`
-	Description string `json:"description"`
+	ID          primitive.ObjectID `bson:"_id" json:"id"`
+	Name        string             `json:"name"`
+	Location    string             `json:"location"`
+	Description string             `json:"description"`
 }
