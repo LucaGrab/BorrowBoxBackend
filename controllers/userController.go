@@ -84,7 +84,7 @@ func InsertUser(c *gin.Context) {
 		return
 	}
 
-	err := database.InsertDocument("users", newUser)
+	_, err := database.InsertDocument("users", newUser)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert user"})
 		return

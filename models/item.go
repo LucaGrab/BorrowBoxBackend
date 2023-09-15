@@ -11,3 +11,10 @@ type Item struct {
 	Available     bool               `json:"available"`
 	CurrentRenter string             `json:"currentRenter"`
 }
+
+type ItemForInsert struct {
+	ID          primitive.ObjectID `bson:"_id" json:"id"`
+	Name        string             `json:"name"`
+	Location    string             `json:"location"`
+	Description string             `json:"description"`
+}
