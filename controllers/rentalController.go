@@ -10,8 +10,6 @@ import (
 
 	"net/http"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 func InsertRental(c *gin.Context) {
