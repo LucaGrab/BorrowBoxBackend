@@ -13,9 +13,12 @@ func Setup(app *gin.Engine) {
 	app.GET("users", controllers.GetUsers)
 	app.DELETE("user/:id", controllers.DeleteUser)
 	app.POST("user", controllers.InsertUser)
-	app.PUT("/user/:id", controllers.UpdateUser)
+	app.PUT("user", controllers.UpdateUser)
 
 	app.GET("useritems/:id", controllers.GetActiveUserItems)
+
+	app.GET("tags/:id", controllers.GetAllTags)
+	app.POST("tag", controllers.UpdateUserTag)
 
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)

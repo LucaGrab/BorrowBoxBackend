@@ -17,7 +17,7 @@ func main() {
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8100"} // Add your frontend addresses here
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8100", "http://192.168.178.29:8100", "http://192.168.178.29:8080"} // Add your frontend addresses here
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
 	r.Use(cors.New(config))
 

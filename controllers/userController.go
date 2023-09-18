@@ -5,10 +5,10 @@ import (
 	"BorrowBox/models"
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func GetUsers(c *gin.Context) {
@@ -94,24 +94,50 @@ func InsertUser(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
-	id := c.Param("id") // ID des zu aktualisierenden Benutzers
-
-	var updatedUser models.User // Ersetze YourDataStruct mit der tatsächlichen Struktur deiner Daten
+	var updatedUser models.User
 
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updateData := bson.M{
-		"$set": updatedUser, // Verwende die gesamte Struktur für das Update
+	// Hier erstellst du eine Filterbedingung, um den Benutzer in der MongoDB zu identifizieren (z. B. anhand der ID).
+	filter := bson.M{"_id": updatedUser.ID}
+
+	// Hier erstellst du eine Aktualisierungsanweisung, um die Benutzerdaten zu aktualisieren.
+	update := bson.M{
+		"$set": bson.M{},
 	}
 
-	err := database.UpdateDocument("users", id, updateData)
+	// Überprüfe, ob das Email-Feld im JSON-Parameter gefüllt ist, bevor du es aktualisierst.
+	if updatedUser.Email != "" {
+		update["$set"].(bson.M)["email"] = updatedUser.Email
+	}
+	fmt.Println(updatedUser.Password)
+	// Überprüfe, ob das Password-Feld im JSON-Parameter gefüllt ist, bevor du es aktualisierst.
+	if updatedUser.Password != "" {
+		update["$set"].(bson.M)["password"] = updatedUser.Password
+	}
+
+	// Überprüfe, ob das Username-Feld im JSON-Parameter gefüllt ist, bevor du es aktualisierst.
+	if updatedUser.Username != "" {
+		update["$set"].(bson.M)["username"] = updatedUser.Username
+	}
+
+	client, err := database.NewMongoDB()
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+	// Öffne eine Verbindung zur MongoDB und aktualisiere den Benutzer.
+	collection := client.Database("borrowbox").Collection("users")
+	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Benutzeraktualisierung fehlgeschlagen"})
+		return
+	}
+
+	// Erfolgreiche Aktualisierung
+	c.JSON(http.StatusOK, gin.H{"message": "Benutzer erfolgreich aktualisiert"})
 }

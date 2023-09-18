@@ -5,6 +5,7 @@ import (
 	"BorrowBox/models"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
@@ -47,6 +48,8 @@ func Login(c *gin.Context) {
 		"username": email,
 		"password": password,
 	}
+
+	fmt.Println(password)
 
 	var user models.User
 	if err := users.FindOne(context.TODO(), filter).Decode(&user); err != nil {
