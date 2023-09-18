@@ -152,6 +152,7 @@ func UpdateUserTag(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while querying the database"})
 		return
 	}
+}
 
 func GetOrCreateTags(tagNames []string) ([]primitive.ObjectID, error) {
 	client, err := database.NewMongoDB()
