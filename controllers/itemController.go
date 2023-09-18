@@ -2,11 +2,50 @@ package controllers
 
 import (
 	"BorrowBox/database"
+	"BorrowBox/models"
+	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func InsertItem(c *gin.Context) {
+
+	var newItem models.Item
+
+	if err := c.ShouldBindJSON(&newItem); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+	newItem.ID = primitive.NewObjectID()
+	//item ohne tags haben
+	itemForInsert := models.ItemForInsert{
+		ID:          newItem.ID,
+		Name:        newItem.Name,
+		Location:    newItem.Location,
+		Description: newItem.Description,
+	}
+	_, err := database.InsertDocument("items", itemForInsert)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert item"})
+		return
+	}
+
+	tags, err := GetOrCreateTags(newItem.TagNames)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
+		return
+	}
+	fmt.Println(newItem.TagNames)
+	err = InsertTagItem(newItem.ID, tags)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Item inserted successfully"})
+}
 
 func GetItems(c *gin.Context) {
 	collection := "items"
@@ -275,7 +314,7 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		},
 		{
 			"$project": bson.M{
-				"_id":         0, // Ausblenden der _id-Felder
+				"_id":         1, // Ausblenden der _id-Felder
 				"description": 1,
 				"location":    1,
 				"name":        1,
@@ -297,5 +336,45 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 	}
 	document := documents[0]
 
-	c.IndentedJSON(200, document)
+	//------------------------- hier wird das document in ein item umgewandelt --------------------
+	//tags müssen iwie umgewandelt werden
+	var tagNamesSlice []string
+	tagNamesPrimitiveA, ok := document["tagNames"].(primitive.A)
+	if ok {
+		for _, tag := range tagNamesPrimitiveA {
+			tagNamesSlice = append(tagNamesSlice, tag.(string))
+		}
+	}
+
+	var item models.Item
+	item = models.Item{
+		ID:          document["_id"].(primitive.ObjectID),
+		TagNames:    tagNamesSlice,
+		Name:        document["name"].(string),
+		Location:    document["location"].(string),
+		Description: document["description"].(string),
+	}
+	//weil das mit user join oben nicht geht
+	activeRental, ok := document["activeRental"].(primitive.M)
+	if ok {
+		active, activeOK := activeRental["active"].(bool)
+		if activeOK {
+			item.Available = !active
+			if active {
+				fmt.Println(activeRental["userId"].(primitive.ObjectID).Hex())
+				user, err := database.GetDocumentByID("users", activeRental["userId"].(primitive.ObjectID).Hex())
+				if err != nil {
+					c.IndentedJSON(404, gin.H{"message": err.Error()})
+					return
+				}
+				item.CurrentRenter = user["username"].(string)
+			}
+		} else {
+			item.Available = true
+		}
+	} else {
+		item.Available = true
+	}
+	//-------------------------------------------------------------------------------------------
+	c.IndentedJSON(200, item)
 }

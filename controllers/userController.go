@@ -12,14 +12,43 @@ import (
 )
 
 func GetUsers(c *gin.Context) {
-	collection := "users"
-	documents, err := database.GetAllDcoumentsByCollection(collection)
+	client, err := database.NewMongoDB()
+	collection := client.Database("borrowbox").Collection("users")
+
+	// Query erstellen
+	filter := bson.D{} // Hier kannst du optional eine Filterbedingung angeben
+
+	// Ergebnisse abrufen
+	cursor, err := collection.Find(context.Background(), filter)
 	if err != nil {
-		c.IndentedJSON(404, gin.H{"message": err.Error()})
-		return
+		panic(err)
+	}
+	defer cursor.Close(context.Background())
+
+	var results []bson.M
+	for cursor.Next(context.Background()) {
+		var result bson.M
+		if err := cursor.Decode(&result); err != nil {
+			panic(err)
+		}
+
+		// Hier kannst du die Projektion auf die gewünschten Felder anwenden
+		projectionResult := bson.M{
+			"id":       result["_id"],
+			"role":     result["role"],
+			"username": result["username"],
+			"email":    result["email"],
+		}
+
+		results = append(results, projectionResult)
 	}
 
-	c.IndentedJSON(200, documents)
+	if err := cursor.Err(); err != nil {
+		panic(err)
+	}
+	defer client.Disconnect(context.TODO())
+
+	c.IndentedJSON(200, results)
 }
 
 func DeleteUser(c *gin.Context) {
@@ -55,7 +84,7 @@ func InsertUser(c *gin.Context) {
 		return
 	}
 
-	err := database.InsertDocument("users", newUser)
+	_, err := database.InsertDocument("users", newUser)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert user"})
 		return

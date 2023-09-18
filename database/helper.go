@@ -1,6 +1,7 @@
 package database
 
 import (
+	"BorrowBox/models"
 	"context"
 	"os"
 
@@ -25,19 +26,25 @@ func NewMongoDB() (*mongo.Client, error) {
 }
 
 // InsertDocument fügt ein Dokument in die Sammlung ein.
-func InsertDocument(collectionName string, document interface{}) error {
+func InsertDocument(collectionName string, document interface{}) (primitive.ObjectID, error) {
 	client, err := NewMongoDB()
 	if err != nil {
 		defer client.Disconnect(context.TODO())
-		return err
+		return primitive.NilObjectID, err
 	}
 	collection := client.Database("borrowbox").Collection(collectionName)
-	_, err = collection.InsertOne(context.Background(), document)
+	result, err := collection.InsertOne(context.Background(), document)
 	if err != nil {
 		defer client.Disconnect(context.TODO())
-		return err
+		return primitive.NilObjectID, err
 	}
-	return nil
+	defer client.Disconnect(context.TODO())
+	insertedID, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		defer client.Disconnect(context.TODO())
+		return primitive.NilObjectID, err
+	}
+	return insertedID, nil
 }
 
 // UpdateDocument aktualisiert ein Dokument in der Sammlung.
@@ -143,4 +150,17 @@ func NewDBAggregation(collectionName string, pipeline []bson.M) ([]bson.M, error
 	}
 	defer client.Disconnect(context.TODO())
 	return results, nil
+}
+
+func GetActiveRentalByItemId(itemId primitive.ObjectID) models.RentalWithId {
+	client, err := NewMongoDB()
+	collection := client.Database("borrowbox").Collection("rentals")
+	filter := bson.M{"itemId": itemId, "active": true}
+	var result models.RentalWithId
+	err = collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		panic(err)
+	}
+	defer client.Disconnect(context.TODO())
+	return result
 }
