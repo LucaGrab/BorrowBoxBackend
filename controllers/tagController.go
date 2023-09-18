@@ -5,14 +5,23 @@ import (
 	"BorrowBox/models"
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"net/http"
 )
 
 // ...
+func GetTags(c *gin.Context) {
+	tags, err := database.GetAllDcoumentsByCollection("tags")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get tags"})
+		return
+	}
+	c.JSON(http.StatusOK, tags)
+}
 
 func GetAllTags(c *gin.Context) {
 	// Holen Sie sich die userId aus dem Parameter

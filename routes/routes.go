@@ -19,6 +19,7 @@ func Setup(app *gin.Engine) {
 
 	app.GET("tags/:id", controllers.GetAllTags)
 	app.POST("tag", controllers.UpdateUserTag)
+	app.GET("tags", controllers.GetTags) //ohne die infos ob es für ein user ausgewählt ist
 
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)

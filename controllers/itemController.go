@@ -13,12 +13,17 @@ import (
 
 func InsertItem(c *gin.Context) {
 
-	var newItem models.Item
+	var newItem models.AddItem
 
 	if err := c.ShouldBindJSON(&newItem); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
 		return
 	}
+	if newItem.Name == "NEIN" {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
 	newItem.ID = primitive.NewObjectID()
 	//item ohne tags haben
 	itemForInsert := models.ItemForInsert{
@@ -32,14 +37,15 @@ func InsertItem(c *gin.Context) {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert item"})
 		return
 	}
-
-	tags, err := GetOrCreateTags(newItem.TagNames)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
-		return
-	}
-	fmt.Println(newItem.TagNames)
-	err = InsertTagItem(newItem.ID, tags)
+	//das brauche ich wahrscheinlich nichtmehr weil ids im frontend bekannt sind -
+	//vllt aber doch um zu schauen dass tags nicht in der zwischenzeit hinzugefügt wurden
+	/*
+		tags, err := GetOrCreateTags(newItem.TagNames)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
+			return
+		}*/
+	err = InsertTagItem(newItem.ID, newItem.TagIds)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
 		return
