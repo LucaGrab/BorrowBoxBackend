@@ -57,12 +57,14 @@ func UpdateDocument(collectionName string, documentID string, update interface{}
 	collection := client.Database("borrowbox").Collection(collectionName)
 	id, err := primitive.ObjectIDFromHex(documentID)
 	if err != nil {
+		println("id error")
 		defer client.Disconnect(context.TODO())
 		return err
 	}
 	filter := bson.M{"_id": id}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
+		println("update error")
 		defer client.Disconnect(context.TODO())
 		return err
 	}
