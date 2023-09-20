@@ -161,8 +161,15 @@ func GetActiveUserItems(c *gin.Context) {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	document := documents[0] // entfernt random array was sonst immer kommt - zeigt trotzdem mehr items
-	c.IndentedJSON(200, document)
+	if len(documents) > 0 {
+		document := documents[0]
+		// Führe hier die gewünschten Aktionen mit 'document' durch
+		c.IndentedJSON(200, document)
+	} else {
+		// Handle den Fall, in dem 'documents' leer ist
+		c.IndentedJSON(404, gin.H{"message": "No documents found"})
+	}
+
 }
 
 func GetItemByIdWithAllRentals(c *gin.Context) {

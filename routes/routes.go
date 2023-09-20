@@ -12,6 +12,7 @@ func Setup(app *gin.Engine) {
 	app.GET("user/:id", controllers.UserById)
 	app.GET("users", controllers.GetUsers)
 	app.DELETE("user/:id", controllers.DeleteUser)
+	app.POST("users", controllers.DeleteUsers)
 	app.POST("user", controllers.InsertUser)
 	app.PUT("user", controllers.UpdateUser)
 
@@ -19,7 +20,9 @@ func Setup(app *gin.Engine) {
 
 	app.GET("tags/:id", controllers.GetAllTags)
 	app.POST("tag", controllers.UpdateUserTag)
-	app.GET("tags", controllers.GetTags) //ohne die infos ob es für ein user ausgewählt ist
+	app.GET("tags", controllers.GetTags)
+	app.POST("addFilter", controllers.CreateTag)
+	app.DELETE("deleteFilter", controllers.DeleteTag)
 
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)

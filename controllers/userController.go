@@ -5,10 +5,10 @@ import (
 	"BorrowBox/models"
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"net/http"
 )
 
 func GetUsers(c *gin.Context) {
@@ -62,6 +62,31 @@ func DeleteUser(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{"message": "User deleted"})
 }
 
+func DeleteUsers(c *gin.Context) {
+	var users []models.User
+
+	if err := c.BindJSON(&users); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	for _, user := range users {
+		err := database.DeleteDocument("users", user.ID.Hex())
+		if err != nil {
+			fmt.Printf("Fehler beim Löschen von Benutzer mit ID %s: %s\n", user.ID, err.Error())
+		}
+	}
+
+	users2, err := database.GetAllDcoumentsByCollection("users")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get tags"})
+		return
+	}
+
+	// Erfolgreiche Antwort mit der aktualisierten Liste aller Tags zurückgeben
+	c.JSON(http.StatusOK, users2)
+}
+
 func UserById(c *gin.Context) {
 	id := c.Param("id")
 	user, err := database.GetDocumentByID("users", id)
@@ -84,13 +109,22 @@ func InsertUser(c *gin.Context) {
 		return
 	}
 
+	newUser.ID = primitive.NewObjectID()
+
 	_, err := database.InsertDocument("users", newUser)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert user"})
 		return
 	}
 
-	c.IndentedJSON(http.StatusCreated, gin.H{"message": "User inserted successfully"})
+	users, err := database.GetAllDcoumentsByCollection("users")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get tags"})
+		return
+	}
+
+	// Erfolgreiche Antwort mit der aktualisierten Liste aller Tags zurückgeben
+	c.JSON(http.StatusOK, users)
 }
 
 func UpdateUser(c *gin.Context) {

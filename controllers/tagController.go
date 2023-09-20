@@ -249,3 +249,98 @@ func InsertTagItem(itemId primitive.ObjectID, tagIds []primitive.ObjectID) error
 	}
 	return nil
 }
+
+func CreateTag(c *gin.Context) {
+	// Struktur zur Analyse des JSON-Objekts definieren
+	var tagData struct {
+		LoginToken string `json:"loginToken"`
+		FilterName string `json:"filterName"`
+	}
+
+	// JSON-Daten analysieren
+	if err := c.ShouldBindJSON(&tagData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	// Verbindung zur MongoDB herstellen
+	client, err := database.NewMongoDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+	// MongoDB-Sammlung "tags" auswählen
+	tagsCollection := client.Database("borrowbox").Collection("tags")
+
+	// Überprüfen, ob der FilterName bereits in der Sammlung vorhanden ist
+	filter := bson.M{"name": tagData.FilterName}
+	var existingTag models.Tag
+	err = tagsCollection.FindOne(context.TODO(), filter).Decode(&existingTag)
+	if err == nil {
+		// Der Tag existiert bereits, eine entsprechende Fehlermeldung zurückgeben
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tag with the same name already exists"})
+		return
+	} else if err != mongo.ErrNoDocuments {
+		// Ein anderer Fehler ist aufgetreten, eine Fehlermeldung zurückgeben
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while querying the database"})
+		return
+	}
+
+	// Den Tag in die Sammlung einfügen, da er nicht vorhanden ist
+	tagID := primitive.NewObjectID()
+	newTag := models.Tag{
+		ID:   tagID,
+		Name: tagData.FilterName,
+	}
+
+	_, err = tagsCollection.InsertOne(context.TODO(), newTag)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while inserting the new tag"})
+		return
+	}
+
+	// Aktualisierte Liste aller Tags abrufen und zurücksenden
+	tags, err := database.GetAllDcoumentsByCollection("tags")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get tags"})
+		return
+	}
+
+	// Erfolgreiche Antwort mit der aktualisierten Liste aller Tags zurückgeben
+	c.JSON(http.StatusOK, tags)
+}
+
+func DeleteTag(c *gin.Context) {
+	// Hier nehmen wir an, dass die ID im Request Body als JSON-Objekt übergeben wird.
+	var requestBody map[string]interface{}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
+		return
+	}
+
+	// Überprüfen Sie, ob die ID im Request Body vorhanden ist.
+	id, ok := requestBody["id"].(string)
+	if !ok || id == "" {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid or missing 'id' in request body"})
+		return
+	}
+
+	// Führen Sie die Löschoperation mit der extrahierten ID durch.
+	err := database.DeleteDocument("tags", id)
+	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Aktualisierte Liste aller Tags abrufen und zurücksenden
+	tags, err := database.GetAllDcoumentsByCollection("tags")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get tags"})
+		return
+	}
+
+	// Erfolgreiche Antwort mit der aktualisierten Liste aller Tags zurückgeben
+	c.JSON(http.StatusOK, tags)
+}
