@@ -23,3 +23,8 @@ type RentalWithId struct {
 	ItemId    primitive.ObjectID `json:"itemId" bson:"itemId"`
 	Active    bool               `json:"active"`
 }
+
+type ReturnData struct {
+	ItemId   primitive.ObjectID `json:"itemId" bson:"itemId"`
+	Location string             `json:"location"`
+}
