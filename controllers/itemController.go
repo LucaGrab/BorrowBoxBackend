@@ -11,6 +11,25 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func DeleteItem(c *gin.Context) {
+	id := c.Param("id")
+	err := database.DeleteDocument("items", id)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item"})
+		return
+	}
+	// konvertiere die ID in ein Objekt
+	formattedId, err := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"itemId": formattedId}
+	err = database.DeleteAllDocuments("itemTag", filter)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item tag mapping"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
+}
+
 func UpdateItem(c *gin.Context) {
 	var updatedItem models.ItemMitTagIds
 	if err := c.ShouldBindJSON(&updatedItem); err != nil {

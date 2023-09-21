@@ -94,6 +94,22 @@ func DeleteDocument(collectionName string, documentID string) error {
 	return nil
 }
 
+// Lösche alle Dokumente mit einem bestimmten Filter
+func DeleteAllDocuments(collectionName string, filter bson.M) error {
+	client, err := NewMongoDB()
+	if err != nil {
+		defer client.Disconnect(context.Background())
+		return err
+	}
+	collection := client.Database("borrowbox").Collection(collectionName)
+	_, err = collection.DeleteMany(context.Background(), filter)
+	if err != nil {
+		defer client.Disconnect(context.Background())
+		return err
+	}
+	return nil
+}
+
 // FindOne retrieves a single document from the collection based on a filter.
 func GetDocumentByID(collectionName string, documentID string) (bson.M, error) {
 	client, err := NewMongoDB()
