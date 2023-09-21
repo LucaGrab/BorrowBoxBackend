@@ -13,21 +13,18 @@ import (
 
 func DeleteItem(c *gin.Context) {
 	id := c.Param("id")
-	err := database.DeleteDocument("items", id)
+
+	// Erstelle ein Update-Filter, um das "deleted" Feld auf true zu setzen
+	update := bson.M{"$set": bson.M{"deleted": true}}
+
+	// Führe das Update in der "items"-Tabelle aus
+	err := database.UpdateDocument("items", id, update)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item"})
-		return
-	}
-	// konvertiere die ID in ein Objekt
-	formattedId, err := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"itemId": formattedId}
-	err = database.DeleteAllDocuments("itemTag", filter)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item tag mapping"})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item marked as deleted successfully"})
 }
 
 func UpdateItem(c *gin.Context) {
