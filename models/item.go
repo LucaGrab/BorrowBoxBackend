@@ -12,7 +12,7 @@ type Item struct {
 	Description   string             `json:"description"`
 	Available     bool               `json:"available"`
 	CurrentRenter string             `json:"currentRenter"`
-	StartTime     string             `json:"startTime"`
+	RentedSince   string             `json:"rentedSince"`
 }
 
 type ItemMitTagIds struct {
