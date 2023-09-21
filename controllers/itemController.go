@@ -382,9 +382,10 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 				"name":        1,
 				"tagNames":    1, // Das Array mit Tag-Namen beibehalten
 				"activeRental": bson.M{
-					"active": 1,
-					"userId": "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
-					"email":  "$user.email",          // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
+					"active":    1,
+					"userId":    "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
+					"email":     "$user.email",
+					"startTime": "$activeRental.start", // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
 				},
 			},
 		},
@@ -408,6 +409,10 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		}
 	}
 
+	startTimePrimitive := document["activeRental"].(primitive.M)["startTime"].(primitive.DateTime)
+	startTimeTime := startTimePrimitive.Time()
+	startTimeFormatted := startTimeTime.Format("2006-01-02 15:04")
+
 	var item models.Item
 	item = models.Item{
 		ID:          document["_id"].(primitive.ObjectID),
@@ -415,6 +420,7 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		Name:        document["name"].(string),
 		Location:    document["location"].(string),
 		Description: document["description"].(string),
+		StartTime:   startTimeFormatted,
 	}
 	//weil das mit user join oben nicht geht
 	activeRental, ok := document["activeRental"].(primitive.M)

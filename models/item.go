@@ -1,6 +1,8 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Item struct {
 	ID            primitive.ObjectID `bson:"_id" json:"id"`
@@ -10,6 +12,7 @@ type Item struct {
 	Description   string             `json:"description"`
 	Available     bool               `json:"available"`
 	CurrentRenter string             `json:"currentRenter"`
+	StartTime     string             `json:"startTime"`
 }
 
 type ItemMitTagIds struct {
