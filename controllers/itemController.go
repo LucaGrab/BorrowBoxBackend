@@ -11,6 +11,43 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func UpdateItem(c *gin.Context) {
+	var updatedItem models.ItemMitTagIds
+	if err := c.ShouldBindJSON(&updatedItem); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+	updateDoc := bson.M{
+		"$set": bson.M{
+			"name":        updatedItem.Name,
+			"location":    updatedItem.Location,
+			"description": updatedItem.Description,
+		},
+	}
+
+	err := database.UpdateDocument("items", updatedItem.ID.Hex(), updateDoc)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
+		return
+	}
+	//das brauche ich wahrscheinlich nichtmehr weil ids im frontend bekannt sind -
+	//vllt aber doch um zu schauen dass tags nicht in der zwischenzeit hinzugefügt wurden
+	/*
+		tags, err := GetOrCreateTags(updatedItem.TagNames)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
+			return
+		}*/
+	err = UpdateItemTags(updatedItem.ID, updatedItem.TagIds)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item updated successfully"})
+
+}
+
 func InsertItem(c *gin.Context) {
 
 	var newItem models.AddItem

@@ -12,6 +12,14 @@ type Item struct {
 	CurrentRenter string             `json:"currentRenter"`
 }
 
+type ItemMitTagIds struct {
+	ID          primitive.ObjectID   `bson:"_id" json:"id"`
+	TagIds      []primitive.ObjectID `bson:"tagIds" json:"tagIds"`
+	Name        string               `json:"name"`
+	Location    string               `json:"location"`
+	Description string               `json:"description"`
+}
+
 type AddItem struct {
 	ID          primitive.ObjectID   `bson:"_id" json:"id"`
 	Name        string               `json:"name"`
