@@ -152,6 +152,42 @@ func GetItems(c *gin.Context) {
 			},
 		},
 		{
+			"$lookup": bson.M{
+				"from": "reports",
+				"let":  bson.M{"itemId": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{"$eq": []interface{}{"$itemId", "$$itemId"}},
+						},
+					},
+					{
+						"$sort": bson.M{"time": -1},
+					},
+					{
+						"$limit": 1,
+					},
+				},
+				"as": "latestReport",
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"latestReport": bson.M{"$arrayElemAt": []interface{}{"$latestReport", 0}},
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"available": bson.M{
+					"$cond": bson.M{
+						"if":   bson.M{"$eq": []interface{}{"$latestReport.statecritical", true}},
+						"then": false,
+						"else": "$available",
+					},
+				},
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":         1,
 				"description": 1,
