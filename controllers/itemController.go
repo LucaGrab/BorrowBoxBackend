@@ -110,6 +110,9 @@ func GetItems(c *gin.Context) {
 	collection := "items"
 	pipeline := []bson.M{
 		{
+			"$match": bson.M{"deleted": false}, // Filtere nach "deleted: false"
+		},
+		{
 			"$lookup": bson.M{
 				"from":         "rentals",
 				"localField":   "_id",
@@ -179,8 +182,10 @@ func GetActiveUserItems(c *gin.Context) {
 	id := c.Param("id")
 	formattedId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		c.IndentedJSON(400, gin.H{"message": "Invalid ID"})
 		return
 	}
+
 	pipeline := []bson.M{
 		{
 			"$match": bson.M{"userId": formattedId, "active": true},
@@ -194,7 +199,10 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 		{
-			"$unwind": "$items", // Entfalte das "items"-Array
+			"$unwind": "$items",
+		},
+		{
+			"$match": bson.M{"items.deleted": false}, // Filtere nach "deleted: false"
 		},
 		{
 			"$group": bson.M{
@@ -209,12 +217,19 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 	}
+
 	documents, err := database.NewDBAggregation("rentals", pipeline)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	document := documents[0] // entfernt random array was sonst immer kommt - zeigt trotzdem mehr items
+
+	if len(documents) == 0 {
+		c.IndentedJSON(404, gin.H{"message": "No matching documents found"})
+		return
+	}
+
+	document := documents[0]
 	c.IndentedJSON(200, document)
 }
 
