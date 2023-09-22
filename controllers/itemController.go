@@ -11,6 +11,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func DeleteItem(c *gin.Context) {
+	id := c.Param("id")
+
+	// Erstelle ein Update-Filter, um das "deleted" Feld auf true zu setzen
+	update := bson.M{"$set": bson.M{"deleted": true}}
+
+	// Führe das Update in der "items"-Tabelle aus
+	err := database.UpdateDocument("items", id, update)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item marked as deleted successfully"})
+}
+
 func UpdateItem(c *gin.Context) {
 	var updatedItem models.ItemMitTagIds
 	if err := c.ShouldBindJSON(&updatedItem); err != nil {
@@ -94,6 +110,9 @@ func GetItems(c *gin.Context) {
 	collection := "items"
 	pipeline := []bson.M{
 		{
+			"$match": bson.M{"deleted": false}, // Filtere nach "deleted: false"
+		},
+		{
 			"$lookup": bson.M{
 				"from":         "rentals",
 				"localField":   "_id",
@@ -163,8 +182,10 @@ func GetActiveUserItems(c *gin.Context) {
 	id := c.Param("id")
 	formattedId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		c.IndentedJSON(400, gin.H{"message": "Invalid ID"})
 		return
 	}
+
 	pipeline := []bson.M{
 		{
 			"$match": bson.M{"userId": formattedId, "active": true},
@@ -178,7 +199,10 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 		{
-			"$unwind": "$items", // Entfalte das "items"-Array
+			"$unwind": "$items",
+		},
+		{
+			"$match": bson.M{"items.deleted": false}, // Filtere nach "deleted: false"
 		},
 		{
 			"$group": bson.M{
@@ -193,12 +217,19 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 	}
+
 	documents, err := database.NewDBAggregation("rentals", pipeline)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	document := documents[0] // entfernt random array was sonst immer kommt - zeigt trotzdem mehr items
+
+	if len(documents) == 0 {
+		c.IndentedJSON(404, gin.H{"message": "No matching documents found"})
+		return
+	}
+
+	document := documents[0]
 	c.IndentedJSON(200, document)
 }
 
@@ -363,9 +394,10 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 				"name":        1,
 				"tagNames":    1, // Das Array mit Tag-Namen beibehalten
 				"activeRental": bson.M{
-					"active": 1,
-					"userId": "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
-					"email":  "$user.email",          // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
+					"active":    1,
+					"userId":    "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
+					"email":     "$user.email",
+					"startTime": "$activeRental.start", // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
 				},
 			},
 		},
@@ -396,6 +428,12 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		Name:        document["name"].(string),
 		Location:    document["location"].(string),
 		Description: document["description"].(string),
+	}
+	if document["activeRental"].(primitive.M)["startTime"] != nil {
+		startTimePrimitive := document["activeRental"].(primitive.M)["startTime"].(primitive.DateTime)
+		startTimeTime := startTimePrimitive.Time()
+		startTimeFormatted := startTimeTime.Format("2006-01-02 15:04")
+		item.RentedSince = startTimeFormatted
 	}
 	//weil das mit user join oben nicht geht
 	activeRental, ok := document["activeRental"].(primitive.M)

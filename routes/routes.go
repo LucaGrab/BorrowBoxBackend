@@ -27,6 +27,7 @@ func Setup(app *gin.Engine) {
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
 	app.POST("addItem", controllers.InsertItem)
 	app.PUT("item", controllers.UpdateItem)
+	app.DELETE("item/:id", controllers.DeleteItem)
 
 	app.POST("startRental", controllers.InsertRental)
 	app.POST("endRental", controllers.EndRental)
