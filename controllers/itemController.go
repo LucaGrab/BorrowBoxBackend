@@ -225,7 +225,7 @@ func GetActiveUserItems(c *gin.Context) {
 	}
 
 	if len(documents) == 0 {
-		c.IndentedJSON(404, gin.H{"message": "No matching documents found"})
+		c.IndentedJSON(http.StatusNoContent, gin.H{"message": "No matching documents found"})
 		return
 	}
 
