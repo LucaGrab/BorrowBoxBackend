@@ -104,5 +104,22 @@ func EndRental(c *gin.Context) {
 
 	println("...location updated")
 
+	//wenn die report beschreibung nicht leer ist, dann report in die tabelle einfügen
+	if returnData.ReportDescription != "" {
+		println("reporting item...")
+		report := models.Report{
+			ItemId:        itemId,
+			Time:          rental.End,
+			UserId:        returnData.UserId,
+			Description:   returnData.ReportDescription,
+			StateCritical: returnData.ReportStateCritical,
+		}
+		_, err := database.InsertDocument("reports", report)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert report"})
+			return
+		}
+	}
+
 	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Rental updated successfully"})
 }
