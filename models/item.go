@@ -14,6 +14,20 @@ type Item struct {
 	CurrentRenter string             `json:"currentRenter"`
 	RentedSince   string             `json:"rentedSince"`
 }
+type ItemMitReport struct {
+	ID                  primitive.ObjectID `bson:"_id" json:"id"`
+	TagNames            []string           `bson:"tagNames" json:"tagNames"`
+	Name                string             `json:"name"`
+	Location            string             `json:"location"`
+	Description         string             `json:"description"`
+	Available           bool               `json:"available"`
+	CurrentRenter       string             `json:"currentRenter"`
+	RentedSince         string             `json:"rentedSince"`
+	ReportDescription   string             `json:"reportDescription"`
+	ReportTime          string             `json:"reportTime"`
+	ReportUser          string             `json:"reportUser"`
+	ReportStateCritical bool               `json:"reportStateCritical"`
+}
 
 type ItemMitTagIds struct {
 	ID          primitive.ObjectID   `bson:"_id" json:"id"`

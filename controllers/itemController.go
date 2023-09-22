@@ -457,8 +457,8 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		}
 	}
 
-	var item models.Item
-	item = models.Item{
+	var item models.ItemMitReport
+	item = models.ItemMitReport{
 		ID:          document["_id"].(primitive.ObjectID),
 		TagNames:    tagNamesSlice,
 		Name:        document["name"].(string),
@@ -492,6 +492,69 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 	} else {
 		item.Available = true
 	}
+
+	//---------------- den report seperat holen
+	pipeline2 := []bson.M{
+		{
+			"$match": bson.M{
+				"itemId": formattedId, // Filtern nach der Item-ID
+			},
+		},
+		{
+			"$sort": bson.M{
+				"time": -1, // Sortieren nach "time" absteigend, um den neuesten Bericht zuerst zu erhalten
+			},
+		},
+		{
+			"$limit": 1, // Begrenzen auf den neuesten Bericht
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "userId",      // Das Feld in der "reports" Tabelle
+				"foreignField": "_id",         // Das Feld in der "users" Tabelle
+				"as":           "userDetails", // Das Alias für das Ergebnis
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"username": bson.M{"$arrayElemAt": []interface{}{"$userDetails.username", 0}},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":           0, // Ausblenden des _id-Feldes
+				"itemId":        1,
+				"time":          1,
+				"description":   1,
+				"username":      1,
+				"statecritical": 1,
+
+				// Fügen Sie hier weitere Felder aus dem "reports"-Dokument hinzu, wenn benötigt
+			},
+		},
+	}
+
+	reports, err := database.NewDBAggregation("reports", pipeline2)
+
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": err.Error()})
+		return
+	}
+	if len(reports) > 0 {
+		report := reports[0]
+		item.ReportDescription = report["description"].(string)
+		item.ReportTime = report["time"].(primitive.DateTime).Time().Format("2006-01-02 15:04")
+		item.ReportStateCritical = report["statecritical"].(bool)
+		item.ReportUser = report["username"].(string)
+		fmt.Println(report["statecritical"].(bool))
+		if report["statecritical"].(bool) {
+			item.Available = false
+		}
+	}
+
+	//----------------
+
 	//-------------------------------------------------------------------------------------------
 	c.IndentedJSON(200, item)
 }
