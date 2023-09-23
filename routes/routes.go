@@ -32,6 +32,8 @@ func Setup(app *gin.Engine) {
 	app.POST("startRental", controllers.InsertRental)
 	app.POST("endRental", controllers.EndRental)
 
+	app.POST("report", controllers.InsertReport)
+
 	app.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
 			"message": "Hello, World!",
