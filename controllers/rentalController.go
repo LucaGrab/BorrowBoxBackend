@@ -33,15 +33,20 @@ func InsertRental(c *gin.Context) {
 }
 
 func EndRental(c *gin.Context) {
-	itemId := c.Param("itemId")
-	objectId, err := primitive.ObjectIDFromHex(itemId)
+	var returnData models.ReturnData
+
+	if err := c.ShouldBindJSON(&returnData); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	itemId, err := primitive.ObjectIDFromHex(returnData.ItemId.Hex())
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
 		return
 	}
 
-	rental := database.GetActiveRentalByItemId(objectId)
-
+	rental := database.GetActiveRentalByItemId(itemId)
 	rental.End = time.Now()
 	rental.Active = false
 
@@ -55,6 +60,65 @@ func EndRental(c *gin.Context) {
 		println(err.Error())
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update rental"})
 		return
+	}
+
+	//update location
+	println("updating location...")
+	itemData, err := database.GetDocumentByID("items", itemId.Hex())
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update location (getting item)"})
+		return
+	}
+	println(itemData)
+
+	var item models.ItemForInsert
+
+	// Convert bson.M to raw BSON data
+	itemBSONData, err := bson.Marshal(itemData)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert item data to BSON"})
+		return
+	}
+
+	// Unmarshal raw BSON data into the item struct
+	if err := bson.Unmarshal(itemBSONData, &item); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal item data"})
+		return
+	}
+
+	item.Location = returnData.Location
+	//print item data
+	println(item.ID.Hex())
+	println(item.Location)
+	println(item.Name)
+	println(item.Description)
+
+	updateData = bson.M{
+		"$set": item, // Verwende die gesamte Struktur für das Update
+	}
+	err = database.UpdateDocument("items", itemId.Hex(), updateData)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update location (updating item)"})
+		return
+	}
+
+	println("...location updated")
+
+	//wenn die report beschreibung nicht leer ist, dann report in die tabelle einfügen
+	if returnData.ReportDescription != "" {
+		println("reporting item...")
+		report := models.Report{
+			ItemId:        itemId,
+			Time:          rental.End,
+			UserId:        returnData.UserId,
+			Description:   returnData.ReportDescription,
+			StateCritical: returnData.ReportStateCritical,
+		}
+		_, err := database.InsertDocument("reports", report)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert report"})
+			return
+		}
 	}
 
 	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Rental updated successfully"})

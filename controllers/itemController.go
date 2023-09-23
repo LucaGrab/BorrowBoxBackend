@@ -11,6 +11,59 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func DeleteItem(c *gin.Context) {
+	id := c.Param("id")
+
+	// Erstelle ein Update-Filter, um das "deleted" Feld auf true zu setzen
+	update := bson.M{"$set": bson.M{"deleted": true}}
+
+	// Führe das Update in der "items"-Tabelle aus
+	err := database.UpdateDocument("items", id, update)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item marked as deleted successfully"})
+}
+
+func UpdateItem(c *gin.Context) {
+	var updatedItem models.ItemMitTagIds
+	if err := c.ShouldBindJSON(&updatedItem); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+	updateDoc := bson.M{
+		"$set": bson.M{
+			"name":        updatedItem.Name,
+			"location":    updatedItem.Location,
+			"description": updatedItem.Description,
+		},
+	}
+
+	err := database.UpdateDocument("items", updatedItem.ID.Hex(), updateDoc)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update item"})
+		return
+	}
+	//das brauche ich wahrscheinlich nichtmehr weil ids im frontend bekannt sind -
+	//vllt aber doch um zu schauen dass tags nicht in der zwischenzeit hinzugefügt wurden
+	/*
+		tags, err := GetOrCreateTags(updatedItem.TagNames)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert tags"})
+			return
+		}*/
+	err = UpdateItemTags(updatedItem.ID, updatedItem.TagIds)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Item updated successfully"})
+
+}
+
 func InsertItem(c *gin.Context) {
 
 	var newItem models.AddItem
@@ -57,6 +110,9 @@ func GetItems(c *gin.Context) {
 	collection := "items"
 	pipeline := []bson.M{
 		{
+			"$match": bson.M{"deleted": false}, // Filtere nach "deleted: false"
+		},
+		{
 			"$lookup": bson.M{
 				"from":         "rentals",
 				"localField":   "_id",
@@ -96,6 +152,42 @@ func GetItems(c *gin.Context) {
 			},
 		},
 		{
+			"$lookup": bson.M{
+				"from": "reports",
+				"let":  bson.M{"itemId": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{"$eq": []interface{}{"$itemId", "$$itemId"}},
+						},
+					},
+					{
+						"$sort": bson.M{"time": -1},
+					},
+					{
+						"$limit": 1,
+					},
+				},
+				"as": "latestReport",
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"latestReport": bson.M{"$arrayElemAt": []interface{}{"$latestReport", 0}},
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"available": bson.M{
+					"$cond": bson.M{
+						"if":   bson.M{"$eq": []interface{}{"$latestReport.statecritical", true}},
+						"then": false,
+						"else": "$available",
+					},
+				},
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":         1,
 				"description": 1,
@@ -126,8 +218,10 @@ func GetActiveUserItems(c *gin.Context) {
 	id := c.Param("id")
 	formattedId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		c.IndentedJSON(400, gin.H{"message": "Invalid ID"})
 		return
 	}
+
 	pipeline := []bson.M{
 		{
 			"$match": bson.M{"userId": formattedId, "active": true},
@@ -141,7 +235,10 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 		{
-			"$unwind": "$items", // Entfalte das "items"-Array
+			"$unwind": "$items",
+		},
+		{
+			"$match": bson.M{"items.deleted": false}, // Filtere nach "deleted: false"
 		},
 		{
 			"$group": bson.M{
@@ -156,20 +253,20 @@ func GetActiveUserItems(c *gin.Context) {
 			},
 		},
 	}
+
 	documents, err := database.NewDBAggregation("rentals", pipeline)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{"message": err.Error()})
 		return
 	}
-	if len(documents) > 0 {
-		document := documents[0]
-		// Führe hier die gewünschten Aktionen mit 'document' durch
-		c.IndentedJSON(200, document)
-	} else {
-		// Handle den Fall, in dem 'documents' leer ist
-		c.IndentedJSON(404, gin.H{"message": "No documents found"})
+
+	if len(documents) == 0 {
+		c.IndentedJSON(http.StatusNoContent, gin.H{"message": "No matching documents found"})
+		return
 	}
 
+	document := documents[0]
+	c.IndentedJSON(200, document)
 }
 
 func GetItemByIdWithAllRentals(c *gin.Context) {
@@ -333,9 +430,10 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 				"name":        1,
 				"tagNames":    1, // Das Array mit Tag-Namen beibehalten
 				"activeRental": bson.M{
-					"active": 1,
-					"userId": "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
-					"email":  "$user.email",          // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
+					"active":    1,
+					"userId":    "$activeRental.userId", // Die userId aus dem verknüpften "users"-Dokument verwenden
+					"email":     "$user.email",
+					"startTime": "$activeRental.start", // Die E-Mail-Adresse aus dem verknüpften "users"-Dokument verwenden
 				},
 			},
 		},
@@ -359,13 +457,19 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 		}
 	}
 
-	var item models.Item
-	item = models.Item{
+	var item models.ItemMitReport
+	item = models.ItemMitReport{
 		ID:          document["_id"].(primitive.ObjectID),
 		TagNames:    tagNamesSlice,
 		Name:        document["name"].(string),
 		Location:    document["location"].(string),
 		Description: document["description"].(string),
+	}
+	if document["activeRental"].(primitive.M)["startTime"] != nil {
+		startTimePrimitive := document["activeRental"].(primitive.M)["startTime"].(primitive.DateTime)
+		startTimeTime := startTimePrimitive.Time()
+		startTimeFormatted := startTimeTime.Format("2006-01-02 15:04")
+		item.RentedSince = startTimeFormatted
 	}
 	//weil das mit user join oben nicht geht
 	activeRental, ok := document["activeRental"].(primitive.M)
@@ -388,6 +492,69 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 	} else {
 		item.Available = true
 	}
+
+	//---------------- den report seperat holen
+	pipeline2 := []bson.M{
+		{
+			"$match": bson.M{
+				"itemId": formattedId, // Filtern nach der Item-ID
+			},
+		},
+		{
+			"$sort": bson.M{
+				"time": -1, // Sortieren nach "time" absteigend, um den neuesten Bericht zuerst zu erhalten
+			},
+		},
+		{
+			"$limit": 1, // Begrenzen auf den neuesten Bericht
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "userId",      // Das Feld in der "reports" Tabelle
+				"foreignField": "_id",         // Das Feld in der "users" Tabelle
+				"as":           "userDetails", // Das Alias für das Ergebnis
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"username": bson.M{"$arrayElemAt": []interface{}{"$userDetails.username", 0}},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":           0, // Ausblenden des _id-Feldes
+				"itemId":        1,
+				"time":          1,
+				"description":   1,
+				"username":      1,
+				"statecritical": 1,
+
+				// Fügen Sie hier weitere Felder aus dem "reports"-Dokument hinzu, wenn benötigt
+			},
+		},
+	}
+
+	reports, err := database.NewDBAggregation("reports", pipeline2)
+
+	if err != nil {
+		c.IndentedJSON(404, gin.H{"message": err.Error()})
+		return
+	}
+	if len(reports) > 0 {
+		report := reports[0]
+		item.ReportDescription = report["description"].(string)
+		item.ReportTime = report["time"].(primitive.DateTime).Time().Format("2006-01-02 15:04")
+		item.ReportStateCritical = report["statecritical"].(bool)
+		item.ReportUser = report["username"].(string)
+		fmt.Println(report["statecritical"].(bool))
+		if report["statecritical"].(bool) {
+			item.Available = false
+		}
+	}
+
+	//----------------
+
 	//-------------------------------------------------------------------------------------------
 	c.IndentedJSON(200, item)
 }

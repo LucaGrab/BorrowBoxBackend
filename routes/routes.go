@@ -20,17 +20,25 @@ func Setup(app *gin.Engine) {
 
 	app.GET("tags/:id", controllers.GetAllTags)
 	app.POST("tag", controllers.UpdateUserTag)
+  
 	app.GET("tags", controllers.GetTags)
 	app.POST("addFilter", controllers.CreateTag)
 	app.DELETE("deleteFilter", controllers.DeleteTag)
 
+	app.GET("itemTags/:id", controllers.GetAllItemTags)
+
+  
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
 	app.POST("addItem", controllers.InsertItem)
+	app.PUT("item", controllers.UpdateItem)
+	app.DELETE("item/:id", controllers.DeleteItem)
 
 	app.POST("startRental", controllers.InsertRental)
-	app.PUT("endRental/:itemId", controllers.EndRental)
+	app.POST("endRental", controllers.EndRental)
+
+	app.POST("report", controllers.InsertReport)
 
 	app.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{

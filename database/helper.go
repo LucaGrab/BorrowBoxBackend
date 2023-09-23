@@ -57,12 +57,14 @@ func UpdateDocument(collectionName string, documentID string, update interface{}
 	collection := client.Database("borrowbox").Collection(collectionName)
 	id, err := primitive.ObjectIDFromHex(documentID)
 	if err != nil {
+		println("id error")
 		defer client.Disconnect(context.TODO())
 		return err
 	}
 	filter := bson.M{"_id": id}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
+		println("update error")
 		defer client.Disconnect(context.TODO())
 		return err
 	}
@@ -87,6 +89,22 @@ func DeleteDocument(collectionName string, documentID string) error {
 	_, err = collection.DeleteOne(context.Background(), filter)
 	if err != nil {
 		defer client.Disconnect(context.TODO())
+		return err
+	}
+	return nil
+}
+
+// Lösche alle Dokumente mit einem bestimmten Filter
+func DeleteAllDocuments(collectionName string, filter bson.M) error {
+	client, err := NewMongoDB()
+	if err != nil {
+		defer client.Disconnect(context.Background())
+		return err
+	}
+	collection := client.Database("borrowbox").Collection(collectionName)
+	_, err = collection.DeleteMany(context.Background(), filter)
+	if err != nil {
+		defer client.Disconnect(context.Background())
 		return err
 	}
 	return nil

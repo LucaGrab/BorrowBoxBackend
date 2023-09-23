@@ -4,6 +4,7 @@ import (
 	"BorrowBox/database"
 	"BorrowBox/models"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -23,7 +24,83 @@ func GetTags(c *gin.Context) {
 	c.JSON(http.StatusOK, tags)
 }
 
-func GetAllTags(c *gin.Context) {
+func GetAllItemTags(c *gin.Context) {
+	// Holen Sie sich die itemID aus dem Parameter
+	itemID, err := primitive.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid itemID"})
+		return
+	}
+
+	// Verbinden Sie sich mit der MongoDB und wählen Sie die "tags"-Sammlung aus
+	client, err := database.NewMongoDB()
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Database error"})
+		return
+	}
+	tagsCollection := client.Database("borrowbox").Collection("tags")
+
+	// Durchführen einer Find-Abfrage in der "tags"-Sammlung, um alle Tags abzurufen
+	tagsCursor, err := tagsCollection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Database error"})
+		return
+	}
+	defer tagsCursor.Close(context.TODO())
+
+	// Extrahieren Sie die gefundenen Tags aus dem Tags-Cursor
+	var tags []bson.M
+	if err := tagsCursor.All(context.TODO(), &tags); err != nil {
+		c.JSON(500, gin.H{"message": "Error while decoding tags"})
+		return
+	}
+
+	// Verbinden Sie sich mit der MongoDB und wählen Sie die "itemTags"-Sammlung aus
+	itemTagsCollection := client.Database("borrowbox").Collection("itemTag")
+
+	// Erstellen Sie eine Filterbedingung für die itemID
+	itemTagFilter := bson.M{"itemId": itemID}
+
+	// Durchführen einer Find-Abfrage in der "itemTags"-Sammlung mit dem Filter
+	itemTagsCursor, err := itemTagsCollection.Find(context.TODO(), itemTagFilter)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Database error"})
+		return
+	}
+	defer itemTagsCursor.Close(context.TODO())
+
+	// Extrahieren Sie die gefundenen itemTags aus dem Cursor
+	var itemTagDocs []bson.M
+	if err := itemTagsCursor.All(context.TODO(), &itemTagDocs); err != nil {
+		c.JSON(500, gin.H{"message": "Error while decoding itemTags"})
+		return
+	}
+	fmt.Println(itemTagDocs)
+	// Extrahieren Sie die tagIds aus den itemTag-Dokumenten
+	var itemTagIDs []primitive.ObjectID
+	for _, doc := range itemTagDocs {
+		tagID, ok := doc["tagId"].(primitive.ObjectID)
+		if ok {
+			itemTagIDs = append(itemTagIDs, tagID)
+		}
+	}
+	fmt.Println(itemTagIDs)
+
+	// Markieren Sie die Tags, die zu einem Item gehören
+	for i, tag := range tags {
+		tagID, ok := tag["_id"].(primitive.ObjectID)
+		fmt.Println(tagID, ok)
+		if ok && contains(itemTagIDs, tagID) {
+			tags[i]["tagged"] = true
+		} else {
+			tags[i]["tagged"] = false
+		}
+	}
+
+	c.JSON(200, tags)
+}
+
+func GetAllTags(c *gin.Context) { //all user tags
 	// Holen Sie sich die userId aus dem Parameter
 	userID, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -105,6 +182,67 @@ func contains(slice []primitive.ObjectID, item primitive.ObjectID) bool {
 		}
 	}
 	return false
+}
+
+func UpdateItemTags(itemID primitive.ObjectID, tagIDs []primitive.ObjectID) error {
+	client, err := database.NewMongoDB()
+	if err != nil {
+		return errors.New("Database error")
+	}
+
+	tags := client.Database("borrowbox").Collection("itemTag")
+
+	// Holen Sie sich die aktuellen Item-Tags für die gegebene Item-ID
+	filter := bson.M{"itemId": itemID}
+	cursor, err := tags.Find(context.TODO(), filter)
+	if err != nil {
+		return errors.New("Error while querying the database")
+	}
+	defer cursor.Close(context.TODO())
+
+	// Erstellen Sie eine Karte (map) der aktuellen Tag-IDs für das Item
+	currentTags := make(map[primitive.ObjectID]bool)
+	for cursor.Next(context.Background()) {
+		var itemTag bson.M
+		if err := cursor.Decode(&itemTag); err != nil {
+			return errors.New("Error while decoding itemTags")
+		}
+		tagID, ok := itemTag["tagId"].(primitive.ObjectID)
+		if ok {
+			currentTags[tagID] = true
+		}
+	}
+	fmt.Println(currentTags)
+
+	// Aktualisieren Sie die Item-Tags basierend auf dem übergebenen Array von Tag-IDs
+	for _, tagID := range tagIDs {
+		if currentTags[tagID] {
+			delete(currentTags, tagID) // Die Tag-ID existiert bereits, entfernen
+		} else {
+			// Die Tag-ID existiert nicht, fügen Sie ein neues Item-Tag hinzu
+			itemTagDoc := bson.M{
+				"itemId": itemID,
+				"tagId":  tagID,
+			}
+			fmt.Println(tagID)
+			_, err := tags.InsertOne(context.TODO(), itemTagDoc)
+			if err != nil {
+				return errors.New("Error while inserting document")
+			}
+		}
+	}
+
+	// Löschen Sie Item-Tags, die nicht mehr im übergebenen Array von Tag-IDs enthalten sind
+	for tagID := range currentTags {
+		fmt.Println(tagID)
+		filter := bson.M{"itemId": itemID, "tagId": tagID}
+		_, err := tags.DeleteOne(context.TODO(), filter)
+		if err != nil {
+			return errors.New("Error while deleting document")
+		}
+	}
+
+	return nil
 }
 
 func UpdateUserTag(c *gin.Context) {

@@ -1,8 +1,9 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Rental struct {
@@ -22,4 +23,12 @@ type RentalWithId struct {
 	End       time.Time          `json:"end"`
 	ItemId    primitive.ObjectID `json:"itemId" bson:"itemId"`
 	Active    bool               `json:"active"`
+}
+
+type ReturnData struct {
+	ItemId              primitive.ObjectID `json:"itemId" bson:"itemId"`
+	Location            string             `json:"location"`
+	ReportDescription   string             `json:"reportDescription"`
+	UserId              primitive.ObjectID `json:"userId" bson:"userId"`
+	ReportStateCritical bool               `json:"reportState"`
 }
