@@ -23,7 +23,7 @@ func main() {
 
 	routes.Setup(r)
 
-	r.Run(":8080") // Starte den Gin-Server auf Port 8080
+	r.Run(":8088") // Starte den Gin-Server auf Port 8080
 
 }
 
