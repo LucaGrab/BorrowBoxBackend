@@ -3,7 +3,7 @@ package controllers
 import (
 	"BorrowBox/database"
 	"BorrowBox/models"
-
+	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -122,4 +122,133 @@ func EndRental(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Rental updated successfully"})
+}
+
+func GetHistory(c *gin.Context) {
+	// User ID aus dem Pfadparameter abrufen
+	userID := c.Param("id")
+
+	id, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		// Handle den Fehler hier, falls die Konvertierung fehlschlägt
+	}
+	// Benutzerrolle abrufen (z. B. aus Ihrer Datenbank)
+	userRole, err := getUserRole(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Benutzerrolle"})
+		return
+	}
+
+	pipeline := []bson.M{
+		{
+			"$lookup": bson.M{
+				"from":         "items",  // Name der zweiten Sammlung
+				"localField":   "itemId", // Feld in der ersten Sammlung
+				"foreignField": "_id",    // Feld in der zweiten Sammlung
+				"as":           "item",
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "users",  // Name der dritten Sammlung
+				"localField":   "userId", // Feld in der ersten Sammlung
+				"foreignField": "_id",    // Feld in der dritten Sammlung
+				"as":           "user",
+			},
+		},
+		{
+			"$unwind": "$item", // Verflachen des "item"-Arrays
+		},
+		{
+			"$unwind": "$user", // Verflachen des "user"-Arrays
+		},
+		{
+			"$match": bson.M{
+				"user._id": id, // Filter nach der gewünschten UserID
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":      0, // Das "_id"-Feld ausblenden
+				"start":    1,
+				"end":      1,
+				"active":   1,
+				"userName": "$user.username", // "username" aus dem verknüpften "user"-Dokument
+				"userId":   "$user._id",
+				"itemName": "$item.name", // "name" aus dem verknüpften "item"-Dokument
+			},
+		},
+	}
+
+	// Wenn der Benutzer ein Admin ist, alle Rentals abrufen
+	if userRole == "admin" {
+		pipeline = []bson.M{
+			{
+				"$lookup": bson.M{
+					"from":         "items",  // Name der zweiten Sammlung
+					"localField":   "itemId", // Feld in der ersten Sammlung
+					"foreignField": "_id",    // Feld in der zweiten Sammlung
+					"as":           "item",
+				},
+			},
+			{
+				"$lookup": bson.M{
+					"from":         "users",  // Name der dritten Sammlung
+					"localField":   "userId", // Feld in der ersten Sammlung
+					"foreignField": "_id",    // Feld in der dritten Sammlung
+					"as":           "user",
+				},
+			},
+			{
+				"$unwind": "$item", // Verflachen des "item"-Arrays
+			},
+			{
+				"$unwind": "$user", // Verflachen des "user"-Arrays
+			},
+			{
+				"$project": bson.M{
+					"_id":      0, // Das "_id"-Feld ausblenden
+					"start":    1,
+					"end":      1,
+					"active":   1,
+					"userName": "$user.username", // "username" aus dem verknüpften "user"-Dokument
+					"userId":   "$user._id",
+					"itemName": "$item.name", // "name" aus dem verknüpften "item"-Dokument
+				},
+			},
+		}
+	}
+
+	// Aggregation durchführen
+	rentals, err := database.NewDBAggregation("rentals", pipeline)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Daten"})
+		return
+	}
+
+	// JSON-Array als Antwort senden
+	c.JSON(http.StatusOK, rentals)
+}
+
+// getUserRole ruft die Benutzerrolle (Admin oder nicht) basierend auf der Benutzer-ID aus der Datenbank ab.
+func getUserRole(userID primitive.ObjectID) (string, error) {
+	// Verbinden Sie sich mit Ihrer Datenbank
+	client, err := database.NewMongoDB()
+	if err != nil {
+		return "", err
+	}
+	defer client.Disconnect(context.Background())
+
+	// Rufen Sie die Benutzerrolle aus der Datenbank ab
+	collection := client.Database("borrowbox").Collection("users")
+	filter := bson.M{"_id": userID}
+	var user struct {
+		Role string `bson:"role"`
+	}
+	err = collection.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		return "", err
+	}
+
+	return user.Role, nil
 }
