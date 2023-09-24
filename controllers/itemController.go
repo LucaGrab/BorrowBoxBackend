@@ -64,6 +64,27 @@ func UpdateItem(c *gin.Context) {
 
 }
 
+func UploadItemImage(c *gin.Context) {
+	itemId := c.Param("id")
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid file"})
+		return
+	}
+
+	database.SetItemImage(itemId, file)
+	c.JSON(http.StatusOK, gin.H{"message": "Image uploaded and saved successfully"})
+}
+
+func GetItemPhoto(c *gin.Context) {
+	ItemId := c.Param("id")
+	bytes := database.GetItemImage(ItemId)
+
+	c.Header("Content-Type", "image/jpeg")
+	c.Data(http.StatusOK, "image/jpeg", bytes)
+}
+
 func InsertItem(c *gin.Context) {
 
 	var newItem models.AddItem

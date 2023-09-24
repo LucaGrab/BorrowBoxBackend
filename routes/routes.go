@@ -20,17 +20,18 @@ func Setup(app *gin.Engine) {
 
 	app.GET("tags/:id", controllers.GetAllTags)
 	app.POST("tag", controllers.UpdateUserTag)
-  
+
 	app.GET("tags", controllers.GetTags)
 	app.POST("addFilter", controllers.CreateTag)
 	app.DELETE("deleteFilter", controllers.DeleteTag)
 
 	app.GET("itemTags/:id", controllers.GetAllItemTags)
 
-  
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
+	app.POST("uploadItemPhoto/:id", controllers.UploadItemImage)
+	app.GET("itemImage/:id", controllers.GetItemPhoto)
 	app.POST("addItem", controllers.InsertItem)
 	app.PUT("item", controllers.UpdateItem)
 	app.DELETE("item/:id", controllers.DeleteItem)
