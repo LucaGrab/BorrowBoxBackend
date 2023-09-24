@@ -2,6 +2,7 @@ package database
 
 import (
 	"BorrowBox/models"
+	"bytes"
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -219,4 +220,32 @@ func SetItemImage(itemId string, image *multipart.FileHeader) {
 		println("copy error")
 		panic(err)
 	}
+}
+
+func GetItemImage(itemId string) []byte {
+	client, err := NewMongoDB()
+	if err != nil {
+		defer client.Disconnect(context.Background())
+		return nil
+	}
+
+	db := client.Database("borrowbox")
+
+	fs, err := gridfs.NewBucket(db)
+	if err != nil {
+		println("gridfs error")
+		panic(err)
+	}
+
+	var buf bytes.Buffer
+	downloadStream, err := fs.OpenDownloadStreamByName(itemId)
+	if err != nil {
+		println("download error")
+		panic(err)
+	}
+	defer downloadStream.Close()
+
+	_, err = io.Copy(&buf, downloadStream)
+
+	return buf.Bytes()
 }

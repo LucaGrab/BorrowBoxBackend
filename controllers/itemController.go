@@ -77,6 +77,14 @@ func UploadItemImage(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Image uploaded and saved successfully"})
 }
 
+func GetItemPhoto(c *gin.Context) {
+	ItemId := c.Param("id")
+	bytes := database.GetItemImage(ItemId)
+
+	c.Header("Content-Type", "image/jpeg")
+	c.Data(http.StatusOK, "image/jpeg", bytes)
+}
+
 func InsertItem(c *gin.Context) {
 
 	var newItem models.AddItem
