@@ -100,11 +100,12 @@ func InsertItem(c *gin.Context) {
 
 	newItem.ID = primitive.NewObjectID()
 	//item ohne tags haben
-	itemForInsert := models.ItemForInsert{
+	itemForInsert := models.ItemForInsertMitDeleted{
 		ID:          newItem.ID,
 		Name:        newItem.Name,
 		Location:    newItem.Location,
 		Description: newItem.Description,
+		Deleted:     false,
 	}
 	_, err := database.InsertDocument("items", itemForInsert)
 	if err != nil {
