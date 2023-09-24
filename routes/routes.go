@@ -31,7 +31,7 @@ func Setup(app *gin.Engine) {
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
 	app.POST("uploadItemPhoto/:id", controllers.UploadItemImage)
-	app.GET("itemPhoto/:id", controllers.GetItemPhoto)
+	app.GET("itemImage/:id", controllers.GetItemPhoto)
 	app.POST("addItem", controllers.InsertItem)
 	app.PUT("item", controllers.UpdateItem)
 	app.DELETE("item/:id", controllers.DeleteItem)
