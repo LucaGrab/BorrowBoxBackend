@@ -219,6 +219,15 @@ func GetHistory(c *gin.Context) {
 		}
 	}
 
+	sortStage := bson.M{
+		"$sort": bson.M{
+			"start": -1,
+		},
+	}
+
+	// Pipeline um die Sortierstufe erweitern
+	pipeline = append(pipeline, sortStage)
+
 	// Aggregation durchführen
 	rentals, err := database.NewDBAggregation("rentals", pipeline)
 	if err != nil {
