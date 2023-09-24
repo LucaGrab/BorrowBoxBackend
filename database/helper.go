@@ -3,13 +3,15 @@ package database
 import (
 	"BorrowBox/models"
 	"context"
-	"os"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"io"
+	"mime/multipart"
+	"os"
 )
 
 // NewMongoDB creates a new MongoDB instance.
@@ -181,4 +183,40 @@ func GetActiveRentalByItemId(itemId primitive.ObjectID) models.RentalWithId {
 	}
 	defer client.Disconnect(context.TODO())
 	return result
+}
+
+func SetItemImage(itemId string, image *multipart.FileHeader) {
+	client, err := NewMongoDB()
+	if err != nil {
+		defer client.Disconnect(context.Background())
+		return
+	}
+
+	db := client.Database("borrowbox")
+
+	fs, err := gridfs.NewBucket(db)
+	if err != nil {
+		println("gridfs error")
+		panic(err)
+	}
+
+	src, err := image.Open()
+	if err != nil {
+		println("open error")
+		panic(err)
+	}
+
+	uploadStream, err := fs.OpenUploadStream(itemId)
+	if err != nil {
+		println("upload error")
+		panic(err)
+	}
+
+	defer uploadStream.Close()
+
+	_, err = io.Copy(uploadStream, src)
+	if err != nil {
+		println("copy error")
+		panic(err)
+	}
 }
