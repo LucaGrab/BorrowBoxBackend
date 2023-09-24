@@ -33,7 +33,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	email := loginData["name"]
+	name := loginData["name"]
 	password := loginData["password"]
 	client, err := database.NewMongoDB()
 	if err != nil {
@@ -44,7 +44,7 @@ func Login(c *gin.Context) {
 	users := client.Database("borrowbox").Collection("users")
 
 	filter := bson.M{
-		"username": email,
+		"username": name,
 		"password": password,
 	}
 
