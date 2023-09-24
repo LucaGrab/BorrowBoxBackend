@@ -132,6 +132,7 @@ func UpdateUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		fmt.Println("test")
 		return
 	}
 
@@ -147,7 +148,7 @@ func UpdateUser(c *gin.Context) {
 	if updatedUser.Email != "" {
 		update["$set"].(bson.M)["email"] = updatedUser.Email
 	}
-	fmt.Println(updatedUser.Password)
+
 	// Überprüfe, ob das Password-Feld im JSON-Parameter gefüllt ist, bevor du es aktualisierst.
 	if updatedUser.Password != "" {
 		update["$set"].(bson.M)["password"] = updatedUser.Password
@@ -172,6 +173,51 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// Abfrage des aktualisierten Benutzers aus der Datenbank
+	var updatedUserFromDB models.User
+	err = collection.FindOne(context.TODO(), filter).Decode(&updatedUserFromDB)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen des aktualisierten Benutzers"})
+		return
+	}
+
+	// Erfolgreiche Aktualisierung und Rückgabe des aktualisierten Benutzers
+	c.JSON(http.StatusOK, updatedUserFromDB)
+}
+
+func UpdateUserRole(c *gin.Context) {
+	var updateData struct {
+		UserID primitive.ObjectID `json:"userid" binding:"required"`
+		Role   string             `json:"role" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Hier erstellst du eine Filterbedingung, um den Benutzer in der MongoDB anhand der UserID zu identifizieren.
+	filter := bson.M{"_id": updateData.UserID}
+
+	// Hier erstellst du eine Aktualisierungsanweisung, um die Rolle des Benutzers zu aktualisieren.
+	update := bson.M{
+		"$set": bson.M{"role": updateData.Role},
+	}
+
+	client, err := database.NewMongoDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// Öffne eine Verbindung zur MongoDB und aktualisiere die Rolle des Benutzers.
+	collection := client.Database("borrowbox").Collection("users")
+	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Rollenaktualisierung fehlgeschlagen"})
+		return
+	}
+
 	// Erfolgreiche Aktualisierung
-	c.JSON(http.StatusOK, gin.H{"message": "Benutzer erfolgreich aktualisiert"})
+	c.JSON(http.StatusOK, gin.H{"message": "Rolle des Benutzers erfolgreich aktualisiert"})
 }

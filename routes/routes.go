@@ -14,20 +14,20 @@ func Setup(app *gin.Engine) {
 	app.DELETE("user/:id", controllers.DeleteUser)
 	app.POST("users", controllers.DeleteUsers)
 	app.POST("user", controllers.InsertUser)
-	app.PUT("user", controllers.UpdateUser)
+	app.POST("user/update", controllers.UpdateUser)
+	app.POST("user/role/update", controllers.UpdateUserRole)
 
 	app.GET("useritems/:id", controllers.GetActiveUserItems)
 
 	app.GET("tags/:id", controllers.GetAllTags)
 	app.POST("tag", controllers.UpdateUserTag)
-  
+
 	app.GET("tags", controllers.GetTags)
 	app.POST("addFilter", controllers.CreateTag)
 	app.DELETE("deleteFilter", controllers.DeleteTag)
 
 	app.GET("itemTags/:id", controllers.GetAllItemTags)
 
-  
 	app.GET("items", controllers.GetItems)
 	app.GET("/items/:id", controllers.GetItemByIdWithTheActiveRental)
 	app.GET("/itemsDetail/:id", controllers.GetItemByIdWithAllRentals)
@@ -37,6 +37,7 @@ func Setup(app *gin.Engine) {
 
 	app.POST("startRental", controllers.InsertRental)
 	app.POST("endRental", controllers.EndRental)
+	app.GET("rentalhistory/:id", controllers.GetHistory)
 
 	app.POST("report", controllers.InsertReport)
 
