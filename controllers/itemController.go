@@ -400,7 +400,10 @@ func GetItemByIdWithTheActiveRental(c *gin.Context) {
 			},
 		},
 		{
-			"$unwind": "$tags", // Entfalte das "tags"-Array
+			"$unwind": bson.M{
+				"path":                       "$tags",
+				"preserveNullAndEmptyArrays": true, // Hier hinzugefügte Zeile
+			},
 		},
 		{
 			"$addFields": bson.M{
