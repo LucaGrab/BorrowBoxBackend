@@ -42,6 +42,7 @@ func Setup(app *gin.Engine) {
 	app.GET("rentalhistory/:id", controllers.GetHistory)
 
 	app.POST("report", controllers.InsertReport)
+	app.GET("reports", controllers.GetReports)
 
 	app.GET("/hello", func(c *gin.Context) { // bitte nicht löschen, ist gut zum testen
 		c.JSON(200, gin.H{
