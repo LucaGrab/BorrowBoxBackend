@@ -241,7 +241,7 @@ func GetItemImage(itemId string) []byte {
 	downloadStream, err := fs.OpenDownloadStreamByName(itemId)
 	if err != nil {
 		println("download error")
-		panic(err)
+		return nil
 	}
 	defer downloadStream.Close()
 
