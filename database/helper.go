@@ -4,15 +4,16 @@ import (
 	"BorrowBox/models"
 	"bytes"
 	"context"
+	"io"
+	"mime/multipart"
+	"os"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"io"
-	"mime/multipart"
-	"os"
 )
 
 // NewMongoDB creates a new MongoDB instance.
@@ -47,6 +48,7 @@ func InsertDocument(collectionName string, document interface{}) (primitive.Obje
 		defer client.Disconnect(context.TODO())
 		return primitive.NilObjectID, err
 	}
+	defer client.Disconnect(context.TODO())
 	return insertedID, nil
 }
 
@@ -71,7 +73,7 @@ func UpdateDocument(collectionName string, documentID string, update interface{}
 		defer client.Disconnect(context.TODO())
 		return err
 	}
-
+	defer client.Disconnect(context.TODO())
 	return nil
 }
 
@@ -94,6 +96,7 @@ func DeleteDocument(collectionName string, documentID string) error {
 		defer client.Disconnect(context.TODO())
 		return err
 	}
+	defer client.Disconnect(context.TODO())
 	return nil
 }
 
@@ -110,6 +113,7 @@ func DeleteAllDocuments(collectionName string, filter bson.M) error {
 		defer client.Disconnect(context.Background())
 		return err
 	}
+	defer client.Disconnect(context.TODO())
 	return nil
 }
 
@@ -132,6 +136,7 @@ func GetDocumentByID(collectionName string, documentID string) (bson.M, error) {
 		defer client.Disconnect(context.TODO())
 		return nil, err
 	}
+	defer client.Disconnect(context.TODO())
 	return result, nil
 }
 
@@ -220,6 +225,7 @@ func SetItemImage(itemId string, image *multipart.FileHeader) {
 		println("copy error")
 		panic(err)
 	}
+	defer client.Disconnect(context.TODO())
 }
 
 func GetItemImage(itemId string) []byte {
@@ -246,6 +252,7 @@ func GetItemImage(itemId string) []byte {
 	defer downloadStream.Close()
 
 	_, err = io.Copy(&buf, downloadStream)
+	defer client.Disconnect(context.TODO())
 
 	return buf.Bytes()
 }
