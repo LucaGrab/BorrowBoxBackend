@@ -56,4 +56,5 @@ func Login(c *gin.Context) {
 	}
 	loginToken := user.ID
 	c.JSON(http.StatusOK, gin.H{"loginToken": loginToken})
+	defer client.Disconnect(context.TODO())
 }

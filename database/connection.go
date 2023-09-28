@@ -26,10 +26,6 @@ func Connect() {
 		panic("Konnte die Verbindung zur MongoDB-Datenbank nicht überprüfen")
 	}
 
-	// Datenbank auswählen (ersetzen Sie 'yourDBName' durch den Namen Ihrer Datenbank)
-	DB = client.Database("yourDBName")
-
-	// Hier können Sie weitere Initialisierungen vornehmen, z.B. Indizes erstellen oder Auto-Increment einrichten.
 }
 
 // Schließen Sie die Verbindung zur Datenbank, wenn Ihr Programm beendet ist.
