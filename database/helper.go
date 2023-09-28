@@ -192,9 +192,12 @@ func GetActiveRentalByItemId(itemId primitive.ObjectID) models.RentalWithId {
 }
 
 func SetItemImage(itemId string, image *multipart.FileHeader) {
+	println("set item image")
+	println(image.Size)
 	client, err := NewMongoDB()
 	if err != nil {
 		defer client.Disconnect(context.Background())
+		println("mongo error")
 		return
 	}
 
@@ -225,7 +228,6 @@ func SetItemImage(itemId string, image *multipart.FileHeader) {
 		println("copy error")
 		panic(err)
 	}
-	defer client.Disconnect(context.TODO())
 }
 
 func GetItemImage(itemId string) []byte {
