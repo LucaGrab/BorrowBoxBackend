@@ -59,6 +59,7 @@ func GetReports(c *gin.Context) {
 				"time":        1,
 				"itemName":    bson.M{"$arrayElemAt": []interface{}{"$itemData.name", 0}},
 				"userName":    bson.M{"$arrayElemAt": []interface{}{"$userData.username", 0}},
+				"itemId":      bson.M{"$arrayElemAt": []interface{}{"$itemData._id", 0}},
 			},
 		},
 		{
