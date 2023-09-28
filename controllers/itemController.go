@@ -125,7 +125,7 @@ func InsertItem(c *gin.Context) {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Unexpected error - Failed to insert item tag mapping"})
 		return
 	}
-	c.IndentedJSON(http.StatusCreated, gin.H{"message": "Item inserted successfully"})
+	c.IndentedJSON(http.StatusCreated, gin.H{"message": newItem.ID.Hex()})
 }
 
 func GetItems(c *gin.Context) {
